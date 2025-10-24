@@ -1,0 +1,169 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Set Up React Web Project with Mock UI and State Management",
+        "description": "Initialize a React web project with a 500px-wide container, implementing the Dashboard, Recording, and Playback screens using mock data to validate UI flows and navigation.",
+        "details": "Use React 18+ with functional components and hooks. Employ a state management solution such as Zustand or Redux Toolkit for simplicity and scalability. Mock the recordings list and transcript data. Implement navigation between screens using React Router v6. Use Material UI or Chakra UI for rapid prototyping of UI components. Ensure the layout is responsive within the fixed 500px container. Include a floating action button for recording and basic list rendering for recordings.",
+        "testStrategy": "Unit test UI components with Jest and React Testing Library. Validate navigation and state updates using mock data. Manually verify UI flows for all screens.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "done",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Initialize React 18+ Project with Tooling and UI Library",
+            "description": "Set up a new React 18+ project using Create React App or Vite, and install Material UI or Chakra UI for rapid prototyping.",
+            "dependencies": [],
+            "details": "Use npx create-react-app or Vite to scaffold the project. Install Material UI (npm install @mui/material @emotion/react @emotion/styled) or Chakra UI (npm install @chakra-ui/react @emotion/react @emotion/styled framer-motion). Ensure the project runs locally with npm start.",
+            "status": "done",
+            "testStrategy": "Run the development server and verify the default app renders. Check that the UI library components can be imported and rendered in App.js."
+          },
+          {
+            "id": 2,
+            "title": "Implement 500px-wide Responsive Container Layout",
+            "description": "Create a responsive layout with a fixed 500px-wide container that adapts to different screen sizes.",
+            "dependencies": [
+              1
+            ],
+            "details": "Design a main container component using Material UI's Box or Chakra UI's Container, setting maxWidth to 500px and centering it. Ensure responsiveness for mobile and desktop within the fixed width.",
+            "status": "done",
+            "testStrategy": "Manually resize the browser window to confirm the container remains 500px wide and is centered. Use Jest/RTL to snapshot test the layout."
+          },
+          {
+            "id": 3,
+            "title": "Set Up State Management with Zustand or Redux Toolkit",
+            "description": "Integrate Zustand or Redux Toolkit for global state management to handle recordings and navigation state.",
+            "dependencies": [
+              1
+            ],
+            "details": "Install Zustand (npm install zustand) or Redux Toolkit (npm install @reduxjs/toolkit react-redux). Create a store to manage mock recordings list and transcript data. Provide the store to the app using context or provider.",
+            "status": "done",
+            "testStrategy": "Write unit tests for the store logic. Use React Testing Library to verify state updates and selectors."
+          },
+          {
+            "id": 4,
+            "title": "Implement Routing and Navigation Between Screens",
+            "description": "Set up React Router v6 to enable navigation between Dashboard, Recording, and Playback screens.",
+            "dependencies": [
+              1
+            ],
+            "details": "Install React Router v6 (npm install react-router-dom). Define routes for /dashboard, /recording, and /playback/:id. Implement navigation logic (e.g., buttons or links) to switch between screens.",
+            "status": "done",
+            "testStrategy": "Write navigation tests with React Testing Library. Manually verify that navigation updates the URL and renders the correct screen."
+          },
+          {
+            "id": 5,
+            "title": "Develop Mock UI for Dashboard, Recording, and Playback Screens",
+            "description": "Build functional UI components for Dashboard, Recording, and Playback screens using mock data, including a floating action button and basic recordings list.",
+            "dependencies": [
+              2,
+              3,
+              4
+            ],
+            "details": "Use Material UI or Chakra UI components to create the three screens. Dashboard displays a mock list of recordings. Recording screen shows a mock recording interface with a floating action button. Playback screen displays mock transcript data. Ensure all screens use the 500px container and state management for data.",
+            "status": "done",
+            "testStrategy": "Unit test each screen component. Use mock data to validate UI rendering and flows. Manually verify navigation and UI consistency across screens."
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Implement Audio Recording Functionality (Web)",
+        "description": "Integrate the MediaRecorder API to enable audio recording, pause/resume, and save/delete behaviors in the Recording screen.",
+        "details": "Use the native MediaRecorder API for browser-based audio capture in WebM format at 32kbps. Implement real-time waveform visualization using wavesurfer.js (v7+). Handle pause/resume by managing MediaRecorder state and buffer concatenation. Ensure audio files are compressed and do not exceed 25MB. Provide delete confirmation dialogs using the UI library. Store recordings in IndexedDB or local state until upload.",
+        "testStrategy": "Write integration tests for recording, pausing, resuming, saving, and deleting audio. Mock MediaRecorder in tests. Manually verify waveform visualization and file size constraints.",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 3,
+        "title": "Integrate Supabase for Storage and Database",
+        "description": "Set up Supabase project, configure authentication (if needed), create the 'recordings' table, and configure storage buckets for audio files.",
+        "details": "Use @supabase/supabase-js v2+ for client integration. Define the 'recordings' table per PRD schema. Set up 'recordings/' storage bucket for audio files. Ensure public read access for Whisper API, but restrict write/delete to authenticated users. Use environment variables for Supabase keys. Implement upload logic for audio files and metadata creation in the database. Consider using Row Level Security (RLS) for production.",
+        "testStrategy": "Write unit and integration tests for Supabase API calls using msw (Mock Service Worker). Manually verify file uploads, DB row creation, and access permissions.",
+        "priority": "high",
+        "dependencies": [
+          2
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 4,
+        "title": "Implement Whisper API Transcription Flow",
+        "description": "After saving a recording, upload the audio to Supabase, create a DB row with status 'transcribing', send the file URL to OpenAI Whisper API, and update the transcript and status in Supabase.",
+        "details": "Use OpenAI's Whisper API (model: 'whisper-1') via REST. After upload, POST the Supabase public audio URL to Whisper. On response, update the 'transcript' and set status to 'done'. Handle errors by setting status to 'error'. Use serverless functions (e.g., Vercel, Netlify, or Supabase Edge Functions) to proxy Whisper API calls securely, keeping OpenAI keys out of the client. Implement polling or WebSocket for transcript status updates.",
+        "testStrategy": "Mock Whisper API in tests. Write integration tests for the end-to-end flow: upload, DB update, API call, and transcript update. Manually verify error handling and status transitions.",
+        "priority": "high",
+        "dependencies": [
+          3
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 5,
+        "title": "Develop Playback Screen with Waveform and Transcript Views",
+        "description": "Implement playback controls (play/pause, skip ±30s, speed adjustment) and display either waveform or transcript depending on transcription status.",
+        "details": "Use the HTML5 <audio> element for playback. Integrate wavesurfer.js for waveform rendering and playback controls. Implement playback speed adjustment (0.5x–2x) using the audio element's playbackRate property. Show waveform if transcript is not ready; replace with transcript text when available. Ensure accessibility and keyboard navigation for controls.",
+        "testStrategy": "Unit test playback controls and waveform rendering. Write integration tests for switching between waveform and transcript. Manually verify playback speed and skip functionality.",
+        "priority": "medium",
+        "dependencies": [
+          4
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 6,
+        "title": "Add Logging and Debugging Utilities",
+        "description": "Implement console logging for key actions (start, pause, resume, save, delete) and optional on-screen debug feedback toggleable in development mode.",
+        "details": "Use a logging utility (e.g., debug or custom context) to standardize logs. Add a dev-only toggle in the UI to show debug messages on-screen. Ensure logs include timestamps and relevant metadata. Use environment variables to enable/disable debug mode.",
+        "testStrategy": "Write unit tests for logging utility. Manually verify on-screen debug feedback and log output in development.",
+        "priority": "low",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 7,
+        "title": "Port App to Bare React Native (Android Sideload)",
+        "description": "Rebuild the app in bare React Native, implementing recording, playback, and storage flows using native device APIs and libraries.",
+        "details": "Initialize a bare React Native project (v0.73+). Use react-native-audio-recorder-player (v3+) for recording and playback, supporting .mp3/.m4a formats. Implement waveform visualization using react-native-audio-visualizer or a custom component. Integrate Supabase using @supabase/supabase-js (with polyfills for RN). Ensure background recording and headphone mic support. Reuse business logic from web where possible. Test sideloading on Android 10+.",
+        "testStrategy": "Write E2E tests with Detox for recording and playback flows. Manually verify background recording and mic input. Unit test native module integration.",
+        "priority": "high",
+        "dependencies": [
+          5
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 8,
+        "title": "Implement Offline Support and Upload Queue (Optional Enhancement)",
+        "description": "Enable offline recording and queuing of uploads/transcriptions for later sync when connectivity is restored.",
+        "details": "Use local storage (AsyncStorage for RN, IndexedDB for web) to persist unsynced recordings. Implement a background sync worker (using service workers for web, Headless JS for RN) to upload pending files and trigger transcription when online. Handle conflict resolution and retries. Provide UI feedback for queued uploads.",
+        "testStrategy": "Simulate offline scenarios in tests. Write integration tests for queueing and syncing logic. Manually verify upload and transcription after reconnect.",
+        "priority": "medium",
+        "dependencies": [
+          7
+        ],
+        "status": "pending",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2025-10-24T23:24:19.874Z",
+      "updated": "2025-10-24T23:26:26.539Z",
+      "description": "Tasks for master context"
+    }
+  }
+}

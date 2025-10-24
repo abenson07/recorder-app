@@ -1,0 +1,222 @@
+# Recording App PRD
+
+## 🧭 Context
+The **Recording App** is a lightweight, voice-based note-taking application initially built for **React Web** to test core functionality and UI design, then converted to **bare React Native** for Android sideloading. The app enables users to record voice memos (such as during walks), store them in Supabase, transcribe using OpenAI’s Whisper API (`model: "whisper-1"`), and play them back later with waveform or transcript views.
+
+The goal is to provide an intuitive, reliable, offline-friendly experience for recording, pausing, saving, and reviewing audio with automatic transcription.
+
+---
+
+## 🎯 Goals
+- Record and store short to medium-length audio recordings locally and in Supabase.
+- Automatically transcribe saved recordings using Whisper API.
+- Provide an easy-to-use UI for playback, pausing, skipping, and speed control.
+- Build first in React Web (containerized 500px width) with fake data for early UI testing.
+- Later, enable full functionality (Supabase + Whisper integration) and port to bare React Native for sideloading.
+
+---
+
+## 🖥️ Platforms
+- **Phase 1:** React Web prototype (UI + mock data)
+- **Phase 2:** React Web full functionality (Supabase + Whisper)
+- **Phase 3:** Bare React Native build (Android sideload)
+
+---
+
+## 📱 Screens & Flows
+
+### 1. **Dashboard**
+**Purpose:** Display a list of all recordings and provide an entry point to start a new recording.
+
+**Components:**
+- List of recordings (flat list)
+  - Each item: filename (timestamp), duration, status (transcribing / done)
+- Record button (floating at bottom center)
+
+**Interactions:**
+- Pressing the record button → Navigates to **Recording** screen.
+- Pressing a recording → Navigates to **Playback** screen.
+
+---
+
+### 2. **Recording Screen**
+**Purpose:** Handle live recording with waveform visualization.
+
+**Components:**
+- Live waveform visualization (based on real microphone input)
+- Buttons:
+  - Pause / Resume (center)
+  - Save (right)
+  - Delete (left)
+
+**Behavior:**
+- When recording starts, waveform animates in real time.
+- Pause freezes waveform but does not discard audio.
+- Resume continues recording.
+- Save uploads audio to Supabase → triggers Whisper transcription.
+- Delete prompts confirmation before permanently discarding.
+
+---
+
+### 3. **Playback Screen**
+**Purpose:** Play back audio or view the transcript once available.
+
+**Components:**
+- Waveform (if transcription not ready) OR Transcript text (when done)
+- Playback controls (bottom toolbar):
+  - Play / Pause
+  - Rewind 30s
+  - Fast-forward 30s
+  - Playback speed selector (0.5x, 1x, 1.25x, 1.5x, 2x)
+
+**Behavior:**
+- If transcript is ready → replace waveform with text.
+- Otherwise → playback shows waveform only.
+
+---
+
+## 🗄️ Database Schema (Supabase)
+
+### Table: `recordings`
+| Column | Type | Description |
+|--------|------|--------------|
+| `id` | `uuid` | Primary key |
+| `created_at` | `timestamptz` | Auto-generated timestamp |
+| `file_name` | `text` | Default: timestamp-based name |
+| `duration` | `float8` | Length of recording in seconds |
+| `audio_url` | `text` | Supabase Storage path to audio file |
+| `transcript` | `text` | Transcribed text from Whisper |
+| `status` | `text` | Enum: `recording`, `transcribing`, `done`, `error` |
+| `size_kb` | `int` | File size in kilobytes |
+| `model` | `text` | Whisper model used (`whisper-1`) |
+
+### Supabase Storage Buckets
+- `recordings/` → stores `.mp3` or `.wav` files
+- `transcripts/` (optional) → stores `.txt` versions if desired
+
+---
+
+## ⚙️ Technical Details
+
+### Recording
+- Web: `MediaRecorder` API (WebM format, 32kbps)
+- React Native: `react-native-audio-recorder-player` or `react-native-sound` (bare workflow)
+- Audio compression ensures file <25MB (Whisper limit)
+- Headphone microphone should be supported via native device access
+
+### Transcription
+- Triggered immediately after `Save`.
+- Flow:
+  1. Upload audio to Supabase Storage.
+  2. Create DB row with status `transcribing`.
+  3. Send file URL to OpenAI Whisper API:
+     ```json
+     {
+       "model": "whisper-1",
+       "file": "<public_supabase_audio_url>"
+     }
+     ```
+  4. Receive transcript → update Supabase `transcript` field → set status `done`.
+
+### Playback
+- Web: `<audio>` element for audio stream.
+- RN: `react-native-audio-recorder-player`.
+- Visual waveform can be rendered via `wavesurfer.js` (web) or a custom RN component.
+
+---
+
+## 🧪 Testing Plan
+- **Phase 1 (Mock)**: Use fake recordings and transcripts to validate UI flows.
+- **Phase 2 (Functional)**: Test Supabase + Whisper integration.
+- **Phase 3 (Native)**: Verify background recording and headphone mic input on Android sideload.
+
+---
+
+## 🧩 Logging & Debugging
+- Console logs for: start, pause, resume, save, delete.
+- Optional on-screen text feedback for debug mode (toggleable in dev).
+
+---
+
+## ✅ Acceptance Criteria
+
+### Dashboard
+- [ ] Record button starts a new recording.
+- [ ] Recordings list updates immediately after saving.
+- [ ] Status shows `transcribing` until Whisper returns result.
+
+### Recording Screen
+- [ ] Live waveform reflects mic input.
+- [ ] Pause and resume work without loss of audio.
+- [ ] Delete prompts confirmation.
+- [ ] Save uploads file to Supabase and triggers transcription.
+- [ ] Navigation returns to dashboard after save.
+
+### Playback
+- [ ] Audio playback with controls (play, pause, skip ±30s).
+- [ ] Playback speed selectable between 0.5x–2x.
+- [ ] Transcript replaces waveform when ready.
+
+---
+
+## 🪜 Task Breakdown (for Taskmaster)
+
+```json
+{
+  "meta": {
+    "project": "recording_app",
+    "teamId": "personal",
+    "batch": "phase_1"
+  },
+  "tasks": [
+    {
+      "title": "Build Recording UI container (500px web layout)",
+      "description": "Implement dashboard, recording, and playback containers using mock data.",
+      "status": "todo"
+    },
+    {
+      "title": "Add MediaRecorder integration (web)",
+      "description": "Enable audio recording, pause/resume, and save/delete behaviors.",
+      "status": "todo"
+    },
+    {
+      "title": "Integrate Supabase for storage and DB",
+      "description": "Store recordings and transcripts; create recordings table and storage buckets.",
+      "status": "todo"
+    },
+    {
+      "title": "Add Whisper API transcription flow",
+      "description": "Upload audio to Supabase, call Whisper API, store transcript, and update status.",
+      "status": "todo"
+    },
+    {
+      "title": "Implement playback controls",
+      "description": "Add play/pause, skip ±30s, and speed adjustment with waveform/ transcript toggle.",
+      "status": "todo"
+    },
+    {
+      "title": "Convert to bare React Native (Android)",
+      "description": "Rebuild audio recording flow for Android sideload with native mic access.",
+      "status": "todo"
+    }
+  ]
+}
+```
+
+---
+
+## ⚠️ Risks & Considerations
+- Whisper API latency may delay transcription display.
+- Background recording permissions vary across Android versions.
+- Audio recording in web browsers may behave inconsistently on iOS.
+- Supabase file URL permissions must allow Whisper access.
+
+---
+
+## 🔍 Open Questions
+- Should we allow renaming of recordings later?
+- Should the app support offline queuing for uploads?
+- Should transcription language be selectable?
+
+---
+
