@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -31,23 +31,54 @@ const Playback: React.FC = () => {
   const [currentTime, setCurrentTime] = useState(0);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const recording = recordings.find((r) => r.id === id);
 
+  // Set up audio element when recording changes
   useEffect(() => {
-    if (isPlaying) {
-      const interval = setInterval(() => {
-        setCurrentTime((prev) => {
-          if (prev >= (recording?.duration || 0)) {
-            setIsPlaying(false);
-            return recording?.duration || 0;
-          }
-          return prev + 1;
-        });
-      }, 1000 / playbackSpeed);
-      return () => clearInterval(interval);
+    if (recording && recording.audioUrl && audioRef.current) {
+      audioRef.current.src = recording.audioUrl;
+      audioRef.current.load();
     }
-  }, [isPlaying, playbackSpeed, recording?.duration]);
+  }, [recording]);
+
+  // Handle audio events
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handleTimeUpdate = () => {
+      setCurrentTime(Math.floor(audio.currentTime));
+    };
+
+    const handleEnded = () => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+    };
+
+    const handlePlay = () => setIsPlaying(true);
+    const handlePause = () => setIsPlaying(false);
+
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('play', handlePlay);
+    audio.addEventListener('pause', handlePause);
+
+    return () => {
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('pause', handlePause);
+    };
+  }, [recording]);
+
+  // Update playback speed
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.playbackRate = playbackSpeed;
+    }
+  }, [playbackSpeed]);
 
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
@@ -56,19 +87,35 @@ const Playback: React.FC = () => {
   };
 
   const handlePlayPause = () => {
-    setIsPlaying(!isPlaying);
+    if (!audioRef.current) return;
+    
+    if (isPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play();
+    }
   };
 
   const handleSeek = (event: Event, newValue: number | number[]) => {
-    setCurrentTime(newValue as number);
+    if (audioRef.current) {
+      audioRef.current.currentTime = newValue as number;
+      setCurrentTime(newValue as number);
+    }
   };
 
   const handleRewind = () => {
-    setCurrentTime(Math.max(0, currentTime - 30));
+    if (audioRef.current) {
+      audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime - 30);
+    }
   };
 
   const handleForward = () => {
-    setCurrentTime(Math.min(recording?.duration || 0, currentTime + 30));
+    if (audioRef.current) {
+      audioRef.current.currentTime = Math.min(
+        audioRef.current.duration || 0, 
+        audioRef.current.currentTime + 30
+      );
+    }
   };
 
   const handleSpeedChange = (speed: number) => {
@@ -118,19 +165,19 @@ const Playback: React.FC = () => {
       <Box sx={{ flex: 1, p: 2 }}>
         {recording.status === 'transcribing' ? (
           <Fade in timeout={600}>
-            <Box sx={{ textAlign: 'center', py: 4 }}>
+            <Box sx={{ textAlign: 'center', py: 2 }}>
               <CircularProgress sx={{ mb: 2 }} />
               <Typography variant="h6" gutterBottom>
                 Transcribing...
               </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Your recording is being processed. This may take a few moments.
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Your recording is being processed. You can still listen to it below.
               </Typography>
               <Chip
                 label="Transcribing"
                 color="warning"
                 variant="outlined"
-                sx={{ mt: 2 }}
+                sx={{ mb: 2 }}
               />
             </Box>
           </Fade>
@@ -149,19 +196,22 @@ const Playback: React.FC = () => {
             </Paper>
           </Slide>
         ) : (
-          <Fade in timeout={600}>
-            <Box sx={{ textAlign: 'center', py: 4 }}>
-              <Typography variant="h6" gutterBottom>
-                No transcript available
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
+          <Slide direction="up" in timeout={800}>
+            <Paper sx={{ p: 2, height: '100%', overflow: 'auto', borderRadius: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                <VolumeUp sx={{ color: 'primary.main' }} />
+                <Typography variant="subtitle1">
+                  Transcript:
+                </Typography>
+              </Box>
+              <Typography variant="body1" sx={{ lineHeight: 1.6, fontStyle: 'italic', color: 'text.secondary' }}>
                 {recording.status === 'error' 
                   ? 'There was an error processing this recording.'
-                  : 'This recording is still being processed.'
+                  : 'Transcript will appear here once processing is complete...'
                 }
               </Typography>
-            </Box>
-          </Fade>
+            </Paper>
+          </Slide>
         )}
       </Box>
 
@@ -172,9 +222,9 @@ const Playback: React.FC = () => {
           <Slider
             value={currentTime}
             min={0}
-            max={recording.duration}
+            max={audioRef.current?.duration || recording.duration}
             onChange={handleSeek}
-            disabled={recording.status !== 'done'}
+            disabled={recording.status !== 'done' || !recording.audioUrl}
             sx={{ mb: 1 }}
           />
           <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -182,7 +232,7 @@ const Playback: React.FC = () => {
               {formatTime(currentTime)}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              {formatTime(recording.duration)}
+              {formatTime(audioRef.current?.duration || recording.duration)}
             </Typography>
           </Box>
         </Box>
@@ -191,7 +241,7 @@ const Playback: React.FC = () => {
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <IconButton
             onClick={handleRewind}
-            disabled={recording.status !== 'done'}
+            disabled={recording.status !== 'done' || !recording.audioUrl}
             size="large"
           >
             <Replay30 />
@@ -199,7 +249,7 @@ const Playback: React.FC = () => {
 
           <IconButton
             onClick={handlePlayPause}
-            disabled={recording.status !== 'done'}
+            disabled={recording.status !== 'done' || !recording.audioUrl}
             size="large"
             sx={{ 
               backgroundColor: 'primary.main',
@@ -226,7 +276,7 @@ const Playback: React.FC = () => {
 
           <IconButton
             onClick={handleForward}
-            disabled={recording.status !== 'done'}
+            disabled={recording.status !== 'done' || !recording.audioUrl}
             size="large"
           >
             <Forward30 />
@@ -286,6 +336,13 @@ const Playback: React.FC = () => {
           />
         </Box>
       </Box>
+      
+      {/* Hidden audio element for actual playback */}
+      <audio
+        ref={audioRef}
+        preload="metadata"
+        style={{ display: 'none' }}
+      />
     </Box>
   );
 };

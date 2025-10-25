@@ -7,14 +7,16 @@ export interface AudioRecorderState {
   audioBlob: Blob | null;
   audioUrl: string | null;
   error: string | null;
+  stream: MediaStream | null; // Add stream to state
 }
 
 export interface AudioRecorderControls {
   startRecording: () => Promise<void>;
   pauseRecording: () => void;
   resumeRecording: () => void;
-  stopRecording: () => void;
+  stopRecording: () => Promise<void>; // Make this async
   resetRecording: () => void;
+  getCurrentBlob: () => Blob | null; // Add method to get current blob
 }
 
 export const useAudioRecorder = (): AudioRecorderState & AudioRecorderControls => {
@@ -24,11 +26,13 @@ export const useAudioRecorder = (): AudioRecorderState & AudioRecorderControls =
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const audioBlobRef = useRef<Blob | null>(null);
 
   const startTimer = useCallback(() => {
     timerRef.current = setInterval(() => {
@@ -57,6 +61,7 @@ export const useAudioRecorder = (): AudioRecorderState & AudioRecorderControls =
       });
 
       streamRef.current = stream;
+      setStream(stream); // Set stream in state for visualizer
 
       // Create MediaRecorder with WebM format and low bitrate
       const mediaRecorder = new MediaRecorder(stream, {
@@ -78,6 +83,7 @@ export const useAudioRecorder = (): AudioRecorderState & AudioRecorderControls =
       mediaRecorder.onstop = () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         setAudioBlob(audioBlob);
+        audioBlobRef.current = audioBlob; // Also set the ref
         
         // Create URL for playback
         const url = URL.createObjectURL(audioBlob);
@@ -118,12 +124,35 @@ export const useAudioRecorder = (): AudioRecorderState & AudioRecorderControls =
     }
   }, [isRecording, isPaused, startTimer]);
 
-  const stopRecording = useCallback(() => {
+  const stopRecording = useCallback(async () => {
     if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      setIsPaused(false);
-      stopTimer();
+      return new Promise<void>((resolve) => {
+        // Set up a one-time listener for the stop event
+        const handleStop = () => {
+          setIsRecording(false);
+          setIsPaused(false);
+          stopTimer();
+          
+          // Wait for the audio blob to be created
+          const checkForBlob = () => {
+            if (audioBlobRef.current) {
+              resolve();
+            } else {
+              // Check again in 10ms
+              setTimeout(checkForBlob, 10);
+            }
+          };
+          
+          // Start checking for the blob
+          setTimeout(checkForBlob, 10);
+        };
+
+        // Add the event listener
+        mediaRecorderRef.current!.addEventListener('stop', handleStop, { once: true });
+        
+        // Stop the recording
+        mediaRecorderRef.current!.stop();
+      });
     }
   }, [isRecording, stopTimer]);
 
@@ -145,7 +174,9 @@ export const useAudioRecorder = (): AudioRecorderState & AudioRecorderControls =
     setAudioBlob(null);
     setAudioUrl(null);
     setError(null);
+    setStream(null);
     audioChunksRef.current = [];
+    audioBlobRef.current = null;
     stopTimer();
 
     // Clean up URL
@@ -154,6 +185,10 @@ export const useAudioRecorder = (): AudioRecorderState & AudioRecorderControls =
     }
   }, [isRecording, audioUrl, stopTimer]);
 
+  const getCurrentBlob = useCallback(() => {
+    return audioBlobRef.current;
+  }, []);
+
   return {
     isRecording,
     isPaused,
@@ -161,10 +196,12 @@ export const useAudioRecorder = (): AudioRecorderState & AudioRecorderControls =
     audioBlob,
     audioUrl,
     error,
+    stream,
     startRecording,
     pauseRecording,
     resumeRecording,
     stopRecording,
     resetRecording,
+    getCurrentBlob,
   };
 };

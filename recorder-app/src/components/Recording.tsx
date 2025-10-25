@@ -15,7 +15,6 @@ import {
   PlayArrow,
   Pause,
   Stop,
-  Save,
   Delete,
   ArrowBack,
   Mic,
@@ -30,7 +29,6 @@ const Recording: React.FC = () => {
   const navigate = useNavigate();
   const { addRecording, setIsRecording } = useStore();
   const [showError, setShowError] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
 
   // Use real audio recording hook
   const {
@@ -40,16 +38,18 @@ const Recording: React.FC = () => {
     audioBlob,
     audioUrl,
     error,
+    stream,
     startRecording,
     pauseRecording,
     resumeRecording,
     stopRecording,
     resetRecording,
+    getCurrentBlob,
   } = useAudioRecorder();
 
   // Use real audio visualization hook
   const { audioLevel, waveformData, isAnalyzing } = useAudioVisualizer(
-    null, // We'll get the stream from the recorder hook
+    stream, // Pass the actual stream
     isRecording,
     isPaused
   );
@@ -65,6 +65,19 @@ const Recording: React.FC = () => {
       setShowError(true);
     }
   }, [error]);
+
+  // Auto-start recording when component mounts
+  useEffect(() => {
+    const autoStart = async () => {
+      try {
+        await startRecording();
+      } catch (err) {
+        console.error('Auto-start recording failed:', err);
+      }
+    };
+    
+    autoStart();
+  }, []); // Only run once on mount
 
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
@@ -88,42 +101,43 @@ const Recording: React.FC = () => {
     }
   };
 
-  const handleStopRecording = () => {
-    stopRecording();
-  };
-
-  const handleSaveRecording = async () => {
-    if (!audioBlob) return;
-
-    setIsSaving(true);
+  const handleStopRecording = async () => {
+    await stopRecording();
     
-    try {
-      // Check file size (Whisper limit is 25MB)
-      const fileSizeMB = audioBlob.size / (1024 * 1024);
-      if (fileSizeMB > 25) {
-        alert('Recording is too large. Please keep recordings under 25MB.');
-        return;
-      }
+    // Use the ref directly since state might not be updated yet
+    const currentBlob = getCurrentBlob();
+    
+    // Save the recording even if it's empty
+    if (currentBlob) {
+      try {
+        // Check file size (Whisper limit is 25MB)
+        const fileSizeMB = currentBlob.size / (1024 * 1024);
+        if (fileSizeMB > 25) {
+          alert('Recording is too large. Please keep recordings under 25MB.');
+          resetRecording();
+          navigate('/dashboard');
+          return;
+        }
 
-      const newRecording = {
-        id: Date.now().toString(),
-        fileName: `Recording - ${new Date().toLocaleString()}`,
-        duration: recordingTime,
-        status: 'transcribing' as const,
-        createdAt: new Date().toISOString(),
-        audioBlob, // Store the actual audio blob
-        audioUrl: audioUrl || undefined, // Convert null to undefined
-      };
-      
-      addRecording(newRecording);
-      resetRecording();
-      navigate('/dashboard');
-    } catch (err) {
-      console.error('Failed to save recording:', err);
-      alert('Failed to save recording. Please try again.');
-    } finally {
-      setIsSaving(false);
+        const newRecording = {
+          id: Date.now().toString(),
+          fileName: `Recording - ${new Date().toLocaleString()}`,
+          duration: recordingTime,
+          status: 'done' as const, // Set to done immediately since we don't have transcription yet
+          createdAt: new Date().toISOString(),
+          audioBlob: currentBlob, // Store the actual audio blob
+          audioUrl: URL.createObjectURL(currentBlob), // Create URL from the blob
+        };
+        
+        addRecording(newRecording);
+      } catch (err) {
+        console.error('Failed to save recording:', err);
+        alert('Failed to save recording. Please try again.');
+      }
     }
+    
+    resetRecording();
+    navigate('/dashboard');
   };
 
   const handleDeleteRecording = () => {
@@ -270,15 +284,6 @@ const Recording: React.FC = () => {
               >
                 {isPaused ? <PlayArrow /> : <Pause />}
               </IconButton>
-              <Button
-                variant="contained"
-                startIcon={<Save />}
-                onClick={handleSaveRecording}
-                disabled={!audioBlob || isSaving}
-                size="large"
-              >
-                {isSaving ? 'Saving...' : 'Save'}
-              </Button>
             </>
           )}
         </Box>
