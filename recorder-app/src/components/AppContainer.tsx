@@ -19,30 +19,32 @@ const AppContainer: React.FC<AppContainerProps> = ({ children }) => {
   const desktopHeight = Math.round((desktopWidth * onePlus13Height) / onePlus13Width); // ~216px
   
   return (
-    <Box
+      <Box
       sx={{
         minHeight: '100vh',
         backgroundColor: 'white',
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        padding: 2,
+        padding: '8px',
       }}
     >
       <Container
         maxWidth={false}
+        disableGutters
         sx={{
           width: `${desktopWidth}px`,
           maxWidth: `${desktopWidth}px`,
-          height: `calc(100vh - 32px)`, // Allow full height with padding
-          maxHeight: `calc(100vh - 32px)`,
+          height: `calc(100vh - 16px)`, // Allow full height with padding (8px * 2)
+          maxHeight: `calc(100vh - 16px)`,
           backgroundColor: '#D1D1D1',
           borderRadius: 2,
           boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-          padding: '16px',
+          padding: '8px',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
+          gap: '16px',
           // Maintain OnePlus 13 aspect ratio (2.2:1)
           aspectRatio: `${onePlus13Width} / ${onePlus13Height}`,
         }}
@@ -55,6 +57,9 @@ const AppContainer: React.FC<AppContainerProps> = ({ children }) => {
             display: 'flex',
             flexDirection: 'column',
             minHeight: 0, // Important for flex children
+            backgroundColor: '#191919',
+            border: '8px solid #000',
+            borderRadius: 1,
           }}
         >
           {children}

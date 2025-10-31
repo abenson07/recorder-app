@@ -89,9 +89,9 @@ const Dashboard: React.FC = () => {
           variant="h6"
           component="h1"
           sx={{
-            color: 'rgba(255, 255, 255, 0.7)',
+            color: 'rgba(230, 230, 230, 0.5)', // #E6E6E6 at 50% opacity
             fontWeight: 300,
-            fontSize: '1rem',
+            fontSize: '12px',
           }}
         >
           My recordings
@@ -99,11 +99,11 @@ const Dashboard: React.FC = () => {
         <Typography
           variant="body2"
           sx={{
-            color: 'rgba(255, 255, 255, 0.7)',
-            fontSize: '0.875rem',
+            color: 'rgba(230, 230, 230, 0.5)', // #E6E6E6 at 50% opacity
+            fontSize: '12px',
           }}
         >
-          {recordings.length}
+          {recordings.length} recordings
         </Typography>
       </Box>
 
@@ -147,7 +147,7 @@ const Dashboard: React.FC = () => {
             </Box>
           </Fade>
         ) : (
-          <List sx={{ p: 0 }}>
+          <List sx={{ p: 0, gap: 0 }}>
             {recordings.map((recording, index) => (
               <Slide
                 key={recording.id}
@@ -159,9 +159,9 @@ const Dashboard: React.FC = () => {
                   onClick={() => handleRecordingClick(recording.id)}
                   disabled={recording.status === 'transcribing'}
                   sx={{
-                    borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-                    px: 2,
-                    py: 1.5,
+                    border: 'none',
+                    px: '16px',
+                    py: '6px',
                     transition: 'all 0.2s ease-in-out',
                     '&:hover': {
                       backgroundColor: recording.status === 'transcribing' ? 'transparent' : 'rgba(255, 255, 255, 0.05)',
@@ -176,10 +176,11 @@ const Dashboard: React.FC = () => {
                       <Typography
                         variant="body1"
                         sx={{
-                          color: 'white',
+                          color: '#E6E6E6', // 100% opacity
                           fontWeight: 300,
-                          fontSize: '0.9375rem',
-                          mb: 0.5,
+                          fontSize: '24px',
+                          lineHeight: 1,
+                          mb: '4px',
                         }}
                       >
                         {recording.fileName.replace('Recording - ', '').split(',')[0] || recording.fileName}
@@ -192,15 +193,15 @@ const Dashboard: React.FC = () => {
                           display: 'flex',
                           alignItems: 'center',
                           gap: 0.5,
-                          mt: 0.25,
+                          mt: 0,
                         }}
                       >
                         <Typography
                           variant="caption"
                           component="span"
                           sx={{
-                            color: 'rgba(255, 255, 255, 0.5)',
-                            fontSize: '0.8125rem',
+                            color: '#E6E6E6', // 100% opacity
+                            fontSize: '12px',
                           }}
                         >
                           {formatDuration(recording.duration)}
@@ -209,8 +210,8 @@ const Dashboard: React.FC = () => {
                           variant="caption"
                           component="span"
                           sx={{
-                            color: 'rgba(255, 255, 255, 0.5)',
-                            fontSize: '0.8125rem',
+                            color: 'rgba(230, 230, 230, 0.5)', // #E6E6E6 at 50% opacity
+                            fontSize: '12px',
                           }}
                         >
                           {formatRelativeTime(recording.createdAt)}
