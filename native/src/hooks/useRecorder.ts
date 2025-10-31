@@ -130,19 +130,43 @@ export const useRecorder = (
   }, []);
 
   const pauseRecorder = useCallback(() => {
+    console.log('⏸️ pauseRecorder called', { 
+      hasRecording: !!recordingRef.current, 
+      isRecording, 
+      isPaused 
+    });
     if (recordingRef.current && isRecording && !isPaused) {
+      console.log('⏸️ Actually pausing recording');
       recordingRef.current.pauseAsync();
       pausedTimeRef.current = Date.now();
       setIsPaused(true);
+    } else {
+      console.warn('⚠️ pauseRecorder guard failed', {
+        hasRecording: !!recordingRef.current,
+        isRecording,
+        isPaused,
+      });
     }
   }, [isRecording, isPaused]);
 
   const resumeRecorder = useCallback(() => {
+    console.log('▶️ resumeRecorder called', { 
+      hasRecording: !!recordingRef.current, 
+      isRecording, 
+      isPaused 
+    });
     if (recordingRef.current && isRecording && isPaused) {
+      console.log('▶️ Actually resuming recording');
       recordingRef.current.startAsync();
       totalPausedTimeRef.current += Date.now() - pausedTimeRef.current;
       pausedTimeRef.current = 0;
       setIsPaused(false);
+    } else {
+      console.warn('⚠️ resumeRecorder guard failed', {
+        hasRecording: !!recordingRef.current,
+        isRecording,
+        isPaused,
+      });
     }
   }, [isRecording, isPaused]);
 
