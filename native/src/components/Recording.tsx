@@ -130,9 +130,16 @@ const Recording: React.FC = () => {
     const freshIsPaused = currentStore.isPaused;
     console.log('⏸️ handlePauseRecording called', { isPaused: freshIsPaused, isRecording: freshIsRecording });
     
+    if (!freshIsRecording) {
+      console.warn('⚠️ Pause/resume called but not recording');
+      return;
+    }
+    
     if (freshIsPaused) {
+      console.log('▶️ Resuming recording');
       resumeRecorder();
     } else {
+      console.log('⏸️ Pausing recording');
       pauseRecorder();
     }
   }, [resumeRecorder, pauseRecorder]);
