@@ -25,7 +25,7 @@ const Playback: React.FC = () => {
   const route = useRoute<PlaybackRouteProp>();
   const navigation = useNavigation<NavigationProp>();
   const { id } = route.params;
-  const { deleteRecording, setIsPlaying, updateRecording } = useStore();
+  const { deleteRecording, setIsPlaying, updateRecording, setPlaybackCallbacks, clearCallbacks } = useStore();
   const [recording, setRecording] = useState<Recording | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [durationUpdated, setDurationUpdated] = useState(false);
