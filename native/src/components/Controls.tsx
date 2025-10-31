@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, TouchableOpacity, StyleSheet, Text } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useNavigationState } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useStore } from '../store/useStore';
 import Dial from './Dial';
@@ -19,7 +19,12 @@ interface ControlsProps {}
 
 const Controls: React.FC<ControlsProps> = () => {
   const navigation = useNavigation<NavigationProp>();
-  const route = useRoute();
+  // Get current route name from navigation state instead of useRoute()
+  const routeName = useNavigationState((state) => {
+    if (!state) return 'Dashboard';
+    const route = state.routes[state.index];
+    return route.name;
+  });
   const { isRecording, isPaused, isPlaying, onRecordingPauseResume, onRecordingStop, onPlaybackPlayPause, onPlaybackStop } = useStore();
   const [wifiLightState, setWifiLightState] = useState<{ light: 'red' | 'green'; status: 'processing' | 'ready' }>({
     light: 'green',
@@ -59,9 +64,9 @@ const Controls: React.FC<ControlsProps> = () => {
     };
   }, [isRecording]);
 
-  const isDashboard = route.name === 'Dashboard';
-  const isRecordingPage = route.name === 'Recording';
-  const isPlayback = route.name === 'Playback';
+  const isDashboard = routeName === 'Dashboard';
+  const isRecordingPage = routeName === 'Recording';
+  const isPlayback = routeName === 'Playback';
 
   const handleRecordClick = () => {
     navigation.navigate('Recording');
