@@ -4,26 +4,15 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Recording } from 'shared/store/types';
-import type { StorageFunctions } from 'shared/store/useStore';
+import { Recording } from '../shared/store/types';
+import type { StorageFunctions } from '../shared/store/useStore';
 import * as FileSystem from 'expo-file-system';
 
 const STORAGE_KEY = 'recorder_app_recordings';
-// Get document directory - use FileSystem.documentDirectory (string) if available, otherwise construct path
-// For SDK 54+, documentDirectory should be available as a string property
-const AUDIO_DIR = (() => {
-  try {
-    // Try to access documentDirectory directly
-    const docDir = (FileSystem as any).documentDirectory;
-    if (docDir && typeof docDir === 'string') {
-      return `${docDir}recordings/`;
-    }
-  } catch (e) {
-    // Fallback if not available
-  }
-  // Fallback path (shouldn't be reached in normal usage)
-  return 'recordings/';
-})();
+// Get document directory - FileSystem exports documentDirectory as a string constant
+// Using type assertion since TypeScript definitions may vary
+const docDir = (FileSystem as any).documentDirectory as string;
+const AUDIO_DIR = docDir ? `${docDir}recordings/` : 'recordings/';
 
 // Helper function for ensuring audio directory exists
 const ensureAudioDir = async () => {
