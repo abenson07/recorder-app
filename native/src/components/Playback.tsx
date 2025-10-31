@@ -354,6 +354,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#101010',
     flexDirection: 'column',
+    borderRadius: 4,
+    overflow: 'hidden',
   },
   centered: {
     flex: 1,

@@ -132,12 +132,12 @@ const Controls: React.FC<ControlsProps> = () => {
         <TouchableOpacity
           style={[styles.button, styles.leftButton]}
           onPress={() => {
-            if (isRecording && onRecordingPauseResume) {
+            if (onRecordingPauseResume) {
               onRecordingPauseResume();
             }
           }}
           activeOpacity={0.8}
-          disabled={!isRecording}
+          disabled={!onRecordingPauseResume}
         >
           <View style={styles.dualIconContainer}>
             <MaterialIcons
@@ -156,7 +156,7 @@ const Controls: React.FC<ControlsProps> = () => {
 
         {/* Position 2: Dial */}
         <View style={[styles.dialContainer, styles.middleButton]}>
-          <Dial isActive={isRecording} />
+          <Dial isActive={isRecording && !isPaused} />
         </View>
 
         {/* Position 3 & 4: Additional Controls Area */}
@@ -172,7 +172,7 @@ const Controls: React.FC<ControlsProps> = () => {
               }
             }}
             activeOpacity={0.8}
-            disabled={!isRecording}
+            disabled={!onRecordingStop && !isRecording}
           >
             <MaterialIcons
               name="stop"
@@ -203,11 +203,20 @@ const Controls: React.FC<ControlsProps> = () => {
             }
           }}
           activeOpacity={0.8}
+          disabled={!onPlaybackPlayPause}
         >
           <View style={styles.dualIconContainer}>
-            <MaterialIcons name="pause" size={20} color="rgba(0, 0, 0, 0.6)" />
+            <MaterialIcons
+              name="pause"
+              size={20}
+              color={isPlaying ? 'rgba(0, 0, 0, 0.6)' : 'rgba(0, 0, 0, 0.3)'}
+            />
             <Text style={styles.iconSeparator}>/</Text>
-            <MaterialIcons name="play-arrow" size={20} color="rgba(0, 0, 0, 0.6)" />
+            <MaterialIcons
+              name="play-arrow"
+              size={20}
+              color={!isPlaying ? 'rgba(0, 0, 0, 0.6)' : 'rgba(0, 0, 0, 0.3)'}
+            />
           </View>
         </TouchableOpacity>
 

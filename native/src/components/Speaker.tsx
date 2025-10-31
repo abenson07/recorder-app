@@ -1,21 +1,49 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import Svg, { Circle } from 'react-native-svg';
 import { useStore } from '../store/useStore';
 import Light from './Light';
 
 const Speaker: React.FC = () => {
   const { isRecording } = useStore();
 
+  // Generate circles for speaker grille (matching SVG pattern)
+  // 3 rows, multiple columns
+  const circles: { x: number; y: number }[] = [];
+  const rows = 3;
+  const cols = 20;
+  const spacing = 8;
+  const dotRadius = 2;
+  const startX = 10;
+  const startY = 10;
+
+  for (let col = 0; col < cols; col++) {
+    for (let row = 0; row < rows; row++) {
+      circles.push({
+        x: startX + col * spacing,
+        y: startY + row * spacing,
+      });
+    }
+  }
+
   return (
     <View style={styles.container}>
       {/* LD-7 Label */}
       <Text style={styles.label}>LD-7</Text>
 
-      {/* Speaker Grille (visual representation) */}
-      <View style={styles.grille}>
-        {Array.from({ length: 6 }).map((_, i) => (
-          <View key={i} style={styles.line} />
-        ))}
+      {/* Speaker Grille SVG */}
+      <View style={styles.grilleContainer}>
+        <Svg width={170} height={36} viewBox="0 0 276 36">
+          {circles.map((circle, index) => (
+            <Circle
+              key={index}
+              cx={circle.x}
+              cy={circle.y}
+              r={dotRadius}
+              fill="#101010"
+            />
+          ))}
+        </Svg>
       </View>
 
       {/* Recording Light */}
@@ -41,19 +69,11 @@ const styles = StyleSheet.create({
     fontWeight: '300',
     fontFamily: 'System',
   },
-  grille: {
+  grilleContainer: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-start',
     marginLeft: 16,
-    gap: 4,
-  },
-  line: {
-    width: 2,
-    height: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    borderRadius: 1,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
   },
   lightContainer: {
     marginLeft: 16,

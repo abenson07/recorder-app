@@ -281,6 +281,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#101010',
+    borderRadius: 4,
+    overflow: 'hidden',
   },
   header: {
     flexDirection: 'row',
