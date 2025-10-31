@@ -23,7 +23,7 @@ import { Recording } from '../store/useStore';
 const Playback: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { deleteRecording } = useStore();
+  const { deleteRecording, setIsPlaying } = useStore();
   const [recording, setRecording] = useState<Recording | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -117,6 +117,11 @@ const Playback: React.FC = () => {
     setPlaybackRate(speed);
   };
 
+  // Sync playback state with global store
+  useEffect(() => {
+    setIsPlaying(isPlaying);
+  }, [isPlaying, setIsPlaying]);
+
   // Listen for playback control events from Controls component
   useEffect(() => {
     const handlePlayPauseEvent = () => {
@@ -134,6 +139,8 @@ const Playback: React.FC = () => {
     return () => {
       window.removeEventListener('playback:play-pause', handlePlayPauseEvent);
       window.removeEventListener('playback:stop', handleStopEvent);
+      // Reset isPlaying when component unmounts
+      setIsPlaying(false);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPlaying, recording]);

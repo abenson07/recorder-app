@@ -16,12 +16,14 @@ interface AppState {
   recordings: Recording[];
   currentRecording: Recording | null;
   isRecording: boolean;
+  isPlaying: boolean;
   isLoading: boolean;
   addRecording: (recording: Recording) => void;
   updateRecording: (id: string, updates: Partial<Recording>) => void;
   deleteRecording: (id: string) => Promise<void>;
   setCurrentRecording: (recording: Recording | null) => void;
   setIsRecording: (isRecording: boolean) => void;
+  setIsPlaying: (isPlaying: boolean) => void;
   loadRecordingsFromStorage: () => Promise<void>;
 }
 
@@ -29,6 +31,7 @@ export const useStore = create<AppState>((set, get) => ({
   recordings: [],
   currentRecording: null,
   isRecording: false,
+  isPlaying: false,
   isLoading: false,
   
   addRecording: (recording) => {
@@ -79,6 +82,9 @@ export const useStore = create<AppState>((set, get) => ({
   
   setIsRecording: (isRecording) =>
     set({ isRecording }),
+  
+  setIsPlaying: (isPlaying) =>
+    set({ isPlaying }),
   
   loadRecordingsFromStorage: async () => {
     set({ isLoading: true });

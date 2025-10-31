@@ -3,11 +3,12 @@ import { Box, IconButton, Typography } from '@mui/material';
 import { PlayArrow, Pause, Stop, Wifi, Headset, TextFields, VolumeUp } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useStore } from '../store/useStore';
+import Dial from './Dial';
 
 const Controls: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isRecording } = useStore();
+  const { isRecording, isPlaying } = useStore();
 
   // Determine current screen state
   const isDashboard = location.pathname === '/dashboard' || location.pathname === '/';
@@ -69,7 +70,7 @@ const Controls: React.FC = () => {
           />
         </IconButton>
 
-        {/* Position 2: Empty Button */}
+        {/* Position 2: Dial */}
         <Box
           sx={{
             flex: 1,
@@ -81,7 +82,9 @@ const Controls: React.FC = () => {
             justifyContent: 'center',
             pointerEvents: 'none',
           }}
-        />
+        >
+          <Dial isActive={false} />
+        </Box>
 
         {/* Position 3 & 4: Additional Controls Area (flex column with equal height children) */}
         <Box
@@ -188,7 +191,7 @@ const Controls: React.FC = () => {
           <Pause sx={{ opacity: isRecording ? 1 : 0.3, transition: 'opacity 0.3s' }} />
         </IconButton>
 
-        {/* Position 2: Empty Button */}
+        {/* Position 2: Dial */}
         <Box
           sx={{
             flex: 1,
@@ -200,7 +203,9 @@ const Controls: React.FC = () => {
             justifyContent: 'center',
             pointerEvents: 'none',
           }}
-        />
+        >
+          <Dial isActive={isRecording} />
+        </Box>
 
         {/* Position 3 & 4: Additional Controls Area */}
         <Box
@@ -311,7 +316,7 @@ const Controls: React.FC = () => {
           </Box>
         </IconButton>
 
-        {/* Position 2: Empty Button */}
+        {/* Position 2: Dial */}
         <Box
           sx={{
             flex: 1,
@@ -323,7 +328,9 @@ const Controls: React.FC = () => {
             justifyContent: 'center',
             pointerEvents: 'none',
           }}
-        />
+        >
+          <Dial isActive={isPlaying} />
+        </Box>
 
         {/* Position 3 & 4: Additional Controls Area */}
         <Box
