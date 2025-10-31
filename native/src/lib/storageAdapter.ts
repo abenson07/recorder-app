@@ -6,7 +6,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Recording } from '../shared/store/types';
 import type { StorageFunctions } from '../shared/store/useStore';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 
 const STORAGE_KEY = 'recorder_app_recordings';
 // Get document directory - FileSystem exports documentDirectory as a string constant
@@ -92,11 +92,46 @@ export const saveRecording = async (recording: Recording): Promise<void> => {
   try {
     await ensureAudioDir();
     
-    // If we have audio data, save it to file system
-    // (In native, we'll save from recording URI, not blob)
     const recordings = await nativeStorageAdapter.loadRecordings();
     
-    const { audioBlob, audioUrl, ...recordingMetadata } = recording;
+    // If we have a temporary audioUri from Expo recording, copy it to permanent storage
+    let finalAudioUrl = recording.audioUrl;
+    if (recording.audioUrl && recording.audioUrl.startsWith('file://')) {
+      // This is a temporary URI from Expo recording - copy to permanent location
+      const permanentUri = `${AUDIO_DIR}${recording.id}.m4a`;
+      
+      try {
+        // Copy file from temp location to permanent location
+        await FileSystem.copyAsync({
+          from: recording.audioUrl,
+          to: permanentUri,
+        });
+        
+        finalAudioUrl = permanentUri;
+        console.log('✅ Audio file copied to permanent storage:', permanentUri);
+        
+        // Optionally delete the temporary file (Expo may clean it up, but let's be safe)
+        try {
+          const tempInfo = await FileSystem.getInfoAsync(recording.audioUrl);
+          if (tempInfo.exists && !recording.audioUrl.includes(AUDIO_DIR)) {
+            await FileSystem.deleteAsync(recording.audioUrl, { idempotent: true });
+          }
+        } catch (deleteErr) {
+          // Ignore delete errors for temp files
+          console.warn('Warning: Could not delete temporary audio file:', deleteErr);
+        }
+      } catch (copyErr) {
+        console.error('Error copying audio file:', copyErr);
+        throw new Error('Failed to save audio file');
+      }
+    }
+    
+    // Create recording metadata with final audio URL
+    const recordingMetadata: Recording = {
+      ...recording,
+      audioUrl: finalAudioUrl,
+      audioBlob: undefined, // Not used in native
+    };
     
     const existingIndex = recordings.findIndex((r) => r.id === recording.id);
     if (existingIndex >= 0) {

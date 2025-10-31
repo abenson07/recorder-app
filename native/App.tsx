@@ -4,19 +4,12 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { PaperProvider } from 'react-native-paper';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { StyleSheet, View, Text } from 'react-native';
 import { useStore } from './src/store/useStore';
+import DashboardScreen from './src/components/Dashboard';
+import RecordingScreen from './src/components/Recording';
+import PlaybackScreen from './src/components/Playback';
 
 const Stack = createNativeStackNavigator();
-
-function DashboardScreen() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.text}>Dashboard Screen</Text>
-      <Text style={styles.subtext}>React Native App - Ready for Development</Text>
-    </View>
-  );
-}
 
 export default function App() {
   const loadRecordings = useStore((state) => state.loadRecordingsFromStorage);
@@ -54,6 +47,22 @@ export default function App() {
               component={DashboardScreen}
               options={{ title: 'Recordings' }}
             />
+            <Stack.Screen 
+              name="Recording" 
+              component={RecordingScreen}
+              options={{ 
+                title: 'Recording',
+                headerBackVisible: false,
+                gestureEnabled: false,
+              }}
+            />
+            <Stack.Screen 
+              name="Playback" 
+              component={PlaybackScreen}
+              options={{ 
+                title: 'Playback',
+              }}
+            />
           </Stack.Navigator>
           <StatusBar style="light" />
         </NavigationContainer>
@@ -62,23 +71,4 @@ export default function App() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#101010',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  text: {
-    fontSize: 24,
-    color: '#FFFFFF',
-    marginBottom: 10,
-    fontWeight: '300',
-  },
-  subtext: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.6)',
-    textAlign: 'center',
-  },
-});
+// Removed unused styles - no longer needed since we're using actual components
