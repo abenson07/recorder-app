@@ -9,6 +9,8 @@ import { saveRecording } from '../lib/storageAdapter';
 import { Audio } from 'expo-av';
 import { Recording as RecordingType } from '../shared/store/types';
 import Timestamp from './Timestamp';
+import RecordingWaveform from './RecordingWaveform';
+import { useRealtimeWaveform } from '../hooks/useRealtimeWaveform';
 
 type RootStackParamList = {
   Dashboard: undefined;
@@ -40,8 +42,14 @@ const Recording: React.FC = () => {
     resumeRecorder,
     resetRecorder,
     getFinalDuration,
+    getRecording,
     isLoading,
   } = useRecorder(handleRecordBack);
+
+  // Get recording reference for waveform
+  // Pass isRecording separately so waveform knows when to clear vs pause
+  const recording = getRecording();
+  const waveformPeaks = useRealtimeWaveform(recording, isRecording, currentPosition);
 
   // Update global recording state
   useEffect(() => {
@@ -208,10 +216,14 @@ const Recording: React.FC = () => {
         <Timestamp milliseconds={currentPosition} />
       </View>
 
-      {/* Middle Section: Waveform (placeholder for now) */}
+      {/* Middle Section: Waveform */}
       <View style={styles.waveformContainer}>
-        <Text style={styles.placeholderText}>Waveform will appear here</Text>
-        <Text style={styles.recordTime}>{recordTime}</Text>
+        <RecordingWaveform
+          peaks={waveformPeaks}
+          height={500}
+          color="rgba(255, 255, 255, 0.5)"
+          isRecording={isRecording && !isPaused}
+        />
       </View>
 
       {/* Bottom Section: Large timestamp */}
@@ -294,16 +306,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginVertical: 40,
-  },
-  placeholderText: {
-    color: 'rgba(255, 255, 255, 0.5)',
-    fontSize: 16,
-    marginBottom: 20,
-  },
-  recordTime: {
-    fontSize: 32,
-    color: '#FFFFFF',
-    fontWeight: '300',
   },
   bottomSection: {
     alignItems: 'center',

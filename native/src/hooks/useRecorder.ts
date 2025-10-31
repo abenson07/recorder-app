@@ -17,6 +17,7 @@ export interface RecorderControls {
   resetRecorder: () => void;
   getFinalDuration: () => number; // Get final duration in milliseconds before stopping
   getStream: () => MediaStream | null; // Not applicable for native, returns null
+  getRecording: () => Audio.Recording | null; // Get current recording reference for waveform
   isLoading: boolean;
 }
 
@@ -219,6 +220,10 @@ export const useRecorder = (
     return null;
   }, []);
 
+  const getRecording = useCallback((): Audio.Recording | null => {
+    return recordingRef.current;
+  }, []);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -239,6 +244,7 @@ export const useRecorder = (
     resetRecorder,
     getFinalDuration,
     getStream,
+    getRecording,
     isLoading,
   };
 };
