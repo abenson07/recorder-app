@@ -13,6 +13,8 @@ import { loadRecording } from '../lib/localStorage';
 import { usePlayer } from '../hooks/usePlayer';
 import { Recording } from '../store/useStore';
 import Timestamp from './Timestamp';
+import PlaybackWaveform from './PlaybackWaveform';
+import { generatePeaksForDuration } from '../lib/audioUtils';
 
 const Playback: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -21,6 +23,8 @@ const Playback: React.FC = () => {
   const [recording, setRecording] = useState<Recording | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [durationUpdated, setDurationUpdated] = useState(false); // Track if we've updated duration
+  const [peaks, setPeaks] = useState<number[]>([]);
+  const [peaksLoading, setPeaksLoading] = useState(false);
 
   const handlePlayBack = ({ currentPosition, duration }: { currentPosition: number; duration: number }) => {
     // This is called during playback to update UI
@@ -72,9 +76,25 @@ const Playback: React.FC = () => {
           });
           setRecording(loaded);
           
-          // If we have an audioUrl, start loading it
-          if (loaded.audioUrl) {
-            // Don't auto-play, just prepare
+          // Generate peaks for waveform visualization
+          if (loaded.audioUrl && loaded.duration > 0) {
+            setPeaksLoading(true);
+            try {
+              const generatedPeaks = await generatePeaksForDuration(
+                loaded.audioUrl,
+                loaded.duration
+              );
+              setPeaks(generatedPeaks);
+              console.log('📊 Generated peaks for waveform:', {
+                peakCount: generatedPeaks.length,
+                durationSeconds: loaded.duration,
+              });
+            } catch (error) {
+              console.error('Error generating peaks:', error);
+              setPeaks([]);
+            } finally {
+              setPeaksLoading(false);
+            }
           }
         }
       } catch (error) {
@@ -291,7 +311,7 @@ const Playback: React.FC = () => {
         </Typography>
       </Box>
 
-      {/* Middle Section: Empty area (fills remaining space) */}
+      {/* Middle Section: Waveform area (fills remaining space) */}
       <Box
         sx={{
           flex: 1,
@@ -300,9 +320,30 @@ const Playback: React.FC = () => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          px: 2,
         }}
       >
-        {/* Empty for now */}
+        {peaksLoading ? (
+          <CircularProgress sx={{ color: 'rgba(255, 255, 255, 0.5)' }} size={24} />
+        ) : peaks.length > 0 && durationMsValue > 0 ? (
+          <PlaybackWaveform
+            peaks={peaks}
+            height={300}
+            currentPosition={currentPosition}
+            duration={durationMsValue}
+            color="rgba(255, 255, 255, 0.5)" // Unplayed portion: 50% opacity (gray)
+            progressColor="#FFFFFF" // Played portion: full opacity (white)
+            barWidth={2}
+            onClick={(seconds) => {
+              // Seek to clicked position
+              seekTo(seconds * 1000); // Convert to milliseconds
+            }}
+          />
+        ) : (
+          <Typography sx={{ color: 'rgba(255, 255, 255, 0.5)' }}>
+            {peaks.length === 0 ? 'No waveform data' : `Duration: ${durationMsValue}ms`}
+          </Typography>
+        )}
       </Box>
 
       {/* Bottom Section: Recorded date, timestamp, and progress bar */}

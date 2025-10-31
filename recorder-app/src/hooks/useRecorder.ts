@@ -15,6 +15,7 @@ export interface RecorderControls {
   resumeRecorder: () => void;
   resetRecorder: () => void;
   getFinalDuration: () => number; // Get final duration in milliseconds before stopping
+  getStream: () => MediaStream | null; // Get current MediaStream for waveform visualization
   isLoading: boolean;
 }
 
@@ -218,6 +219,10 @@ export const useRecorder = (
     return 0;
   }, []);
 
+  const getStream = useCallback((): MediaStream | null => {
+    return streamRef.current;
+  }, []);
+
   const resetRecorder = useCallback(() => {
     // Stop recording if active
     if (mediaRecorderRef.current && isRecording) {
@@ -267,6 +272,7 @@ export const useRecorder = (
     resumeRecorder,
     resetRecorder,
     getFinalDuration,
+    getStream,
     isLoading,
   };
 };

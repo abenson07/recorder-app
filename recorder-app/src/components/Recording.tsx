@@ -10,6 +10,8 @@ import { useStore } from '../store/useStore';
 import { useRecorder } from '../hooks/useRecorder';
 import { saveRecording } from '../lib/localStorage';
 import Timestamp from './Timestamp';
+import RecordingWaveform from './RecordingWaveform';
+import { useRealtimeWaveform } from '../hooks/useRealtimeWaveform';
 
 const Recording: React.FC = () => {
   const navigate = useNavigate();
@@ -33,8 +35,51 @@ const Recording: React.FC = () => {
     resumeRecorder,
     resetRecorder,
     getFinalDuration,
+    getStream,
     isLoading,
   } = useRecorder(handleRecordBack);
+
+  // Get stream for real-time waveform (reactive to recording state)
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  
+  useEffect(() => {
+    if (isRecording) {
+      // Poll for stream availability since it's set asynchronously
+      const checkStream = () => {
+        const currentStream = getStream();
+        if (currentStream !== stream) {
+          setStream(currentStream);
+          if (currentStream) {
+            console.log('🎤 Stream available for waveform:', {
+              active: currentStream.active,
+              tracks: currentStream.getTracks().length,
+            });
+          }
+        }
+      };
+      
+      checkStream();
+      const interval = setInterval(checkStream, 100);
+      return () => clearInterval(interval);
+    } else {
+      setStream(null);
+    }
+  }, [isRecording, getStream, stream]);
+
+  const waveformPeaks = useRealtimeWaveform(stream, isRecording && !isPaused);
+
+  // Debug: Log waveform state
+  useEffect(() => {
+    if (isRecording) {
+      console.log('🎤 Recording waveform state:', {
+        hasStream: !!stream,
+        streamActive: stream?.active,
+        isPaused,
+        peaksCount: waveformPeaks.length,
+        samplePeaks: waveformPeaks.slice(0, 5),
+      });
+    }
+  }, [isRecording, isPaused, stream, waveformPeaks]);
 
   // Update global recording state
   useEffect(() => {
@@ -325,9 +370,15 @@ const Recording: React.FC = () => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          overflow: 'hidden',
         }}
       >
-        {/* Waveform placeholder - empty for now */}
+        <RecordingWaveform 
+          peaks={waveformPeaks} 
+          height={500}
+          color="rgba(255, 255, 255, 0.5)"
+          isRecording={isRecording && !isPaused}
+        />
       </Box>
 
       {/* Bottom Section: Large timestamp */}
