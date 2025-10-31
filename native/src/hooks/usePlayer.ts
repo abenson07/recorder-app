@@ -186,9 +186,13 @@ export const usePlayer = (
             }
           }
           
-          // Check if playback finished
-          if (status.didJustFinish) {
-            handleEnded();
+          // Check if playback finished (check position vs duration)
+          if (status.isLoaded) {
+            const position = status.positionMillis || 0;
+            const duration = status.durationMillis || 0;
+            if (duration > 0 && position >= duration - 100) { // 100ms buffer
+              handleEnded();
+            }
           }
         }
       );

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { Button, Snackbar } from 'react-native-paper';
-import { useRoute, useNavigation } from '@react-navigation/native';
+import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useStore } from '../store/useStore';
 import { loadRecording } from '../lib/storageAdapter';
@@ -18,10 +18,10 @@ type RootStackParamList = {
 };
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
-type RouteProp = { params: { id: string } };
+type PlaybackRouteProp = RouteProp<RootStackParamList, 'Playback'>;
 
 const Playback: React.FC = () => {
-  const route = useRoute<RouteProp>();
+  const route = useRoute<PlaybackRouteProp>();
   const navigation = useNavigation<NavigationProp>();
   const { id } = route.params;
   const { deleteRecording, setIsPlaying, updateRecording } = useStore();
