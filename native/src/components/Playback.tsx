@@ -8,6 +8,8 @@ import { loadRecording } from '../lib/storageAdapter';
 import { usePlayer } from '../hooks/usePlayer';
 import { Recording } from '../shared/store/types';
 import Timestamp from './Timestamp';
+import PlaybackWaveform from './PlaybackWaveform';
+import { generatePeaksForDuration } from '../lib/audioUtils';
 
 type RootStackParamList = {
   Dashboard: undefined;
@@ -28,6 +30,8 @@ const Playback: React.FC = () => {
   const [durationUpdated, setDurationUpdated] = useState(false);
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [peaks, setPeaks] = useState<number[]>([]);
+  const [peaksLoading, setPeaksLoading] = useState(false);
 
   const handlePlayBack = ({ currentPosition, duration }: { currentPosition: number; duration: number }) => {
     // Called during playback to update UI
@@ -75,6 +79,27 @@ const Playback: React.FC = () => {
             audioUrl: loaded.audioUrl ? 'present' : 'missing',
           });
           setRecording(loaded);
+
+          // Generate peaks for waveform visualization
+          if (loaded.audioUrl && loaded.duration > 0) {
+            setPeaksLoading(true);
+            try {
+              const generatedPeaks = await generatePeaksForDuration(
+                loaded.audioUrl,
+                loaded.duration
+              );
+              setPeaks(generatedPeaks);
+              console.log('📊 Generated peaks for waveform:', {
+                peakCount: generatedPeaks.length,
+                durationSeconds: loaded.duration,
+              });
+            } catch (error) {
+              console.error('Error generating peaks:', error);
+              setPeaks([]);
+            } finally {
+              setPeaksLoading(false);
+            }
+          }
         } else {
           setErrorMessage('Recording not found');
           setShowError(true);
@@ -229,10 +254,30 @@ const Playback: React.FC = () => {
       {/* Date */}
       <Text style={styles.dateText}>{formatRecordedDate(recording.createdAt)}</Text>
 
-      {/* Waveform placeholder */}
+      {/* Waveform */}
       <View style={styles.waveformContainer}>
-        <Text style={styles.placeholderText}>Waveform will appear here</Text>
-        <Text style={styles.playTime}>{playTime}</Text>
+        {peaksLoading ? (
+          <ActivityIndicator size="small" color="rgba(255, 255, 255, 0.5)" />
+        ) : peaks.length > 0 && finalDurationMs > 0 ? (
+          <PlaybackWaveform
+            peaks={peaks}
+            height={300}
+            currentPosition={currentPosition}
+            duration={finalDurationMs}
+            color="rgba(255, 255, 255, 0.5)"
+            progressColor="#FFFFFF"
+            barWidth={2}
+            onClick={(seconds) => {
+              // Seek to clicked position
+              seekTo(seconds * 1000); // Convert to milliseconds
+            }}
+          />
+        ) : (
+          <>
+            <Text style={styles.placeholderText}>No waveform data</Text>
+            <Text style={styles.playTime}>{playTime}</Text>
+          </>
+        )}
       </View>
 
       {/* Bottom Section: Large timestamp */}
