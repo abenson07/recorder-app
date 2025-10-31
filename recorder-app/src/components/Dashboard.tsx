@@ -71,7 +71,6 @@ const Dashboard: React.FC = () => {
         width: '100%',
         display: 'flex',
         flexDirection: 'column',
-        backgroundColor: '#101010',
         color: 'white',
       }}
     >

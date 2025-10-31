@@ -30,12 +30,13 @@ const Controls: React.FC = () => {
         sx={{
           height: '150px',
           width: '100%',
-          backgroundColor: '#D1D1D1',
+          backgroundColor: '#1E1E1E',
+          borderRadius: '8px',
           display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          px: 2,
-          gap: 2,
+          flexDirection: 'row',
+          alignItems: 'stretch',
+          padding: '2px',
+          gap: '2px',
           borderTop: '1px solid rgba(0, 0, 0, 0.1)',
         }}
       >
@@ -43,16 +44,15 @@ const Controls: React.FC = () => {
         <IconButton
           onClick={handleRecordClick}
           sx={{
-            width: 64,
-            height: 64,
-            borderRadius: 1,
-            backgroundColor: 'white',
+            flex: 1,
+            borderRadius: '6px 2px 2px 6px', // top-left: 6px, top-right: 2px, bottom-right: 2px, bottom-left: 6px
+            backgroundColor: '#D1D1D1',
             border: '1px solid rgba(0, 0, 0, 0.1)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             '&:hover': {
-              backgroundColor: '#f5f5f5',
+              backgroundColor: '#c5c5c5',
             },
           }}
         >
@@ -70,16 +70,15 @@ const Controls: React.FC = () => {
         <IconButton
           onClick={handleStopClick}
           sx={{
-            width: 64,
-            height: 64,
-            borderRadius: 1,
-            backgroundColor: 'white',
+            flex: 1,
+            borderRadius: '2px',
+            backgroundColor: '#D1D1D1',
             border: '1px solid rgba(0, 0, 0, 0.1)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             '&:hover': {
-              backgroundColor: '#f5f5f5',
+              backgroundColor: '#c5c5c5',
             },
           }}
         >
@@ -104,30 +103,29 @@ const Controls: React.FC = () => {
           />
         </IconButton>
 
-        {/* Additional Controls Area */}
+        {/* Additional Controls Area (flex column with equal height children) */}
         <Box
           sx={{
             flex: 1,
-            height: '100%',
             display: 'flex',
             flexDirection: 'column',
-            gap: 1,
-            py: 1,
+            gap: '2px',
+            borderRadius: '2px 6px 6px 2px', // top-left: 2px, top-right: 6px, bottom-right: 6px, bottom-left: 2px
           }}
         >
           <Box
             sx={{
               flex: 1,
-              backgroundColor: 'white',
-              borderRadius: 1,
+              backgroundColor: '#D1D1D1',
+              borderRadius: '2px 6px 2px 2px', // top-left: 2px, top-right: 6px, bottom-right: 2px, bottom-left: 2px
               border: '1px solid rgba(0, 0, 0, 0.1)',
             }}
           />
           <Box
             sx={{
               flex: 1,
-              backgroundColor: 'white',
-              borderRadius: 1,
+              backgroundColor: '#D1D1D1',
+              borderRadius: '2px 2px 6px 2px', // top-left: 2px, top-right: 2px, bottom-right: 6px, bottom-left: 2px
               border: '1px solid rgba(0, 0, 0, 0.1)',
             }}
           />
@@ -145,20 +143,127 @@ const Controls: React.FC = () => {
         sx={{
           height: '150px',
           width: '100%',
-          backgroundColor: '#D1D1D1',
+          backgroundColor: '#1E1E1E',
+          borderRadius: '8px',
           display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: 2,
+          padding: '2px',
+          gap: '4px',
           borderTop: '1px solid rgba(0, 0, 0, 0.1)',
         }}
       >
-        {/* Pause/Resume Button - Trigger custom event */}
-        {isRecording && (
+        {/* Row 1: Control Buttons */}
+        <Box
+          sx={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '4px',
+            width: '100%',
+            borderRadius: '6px 2px 2px 6px', // top-left: 6px, top-right: 2px, bottom-right: 2px, bottom-left: 6px
+          }}
+        >
+          {/* Pause/Resume Button - Trigger custom event */}
+          {isRecording && (
+            <IconButton
+              onClick={() => {
+                // Dispatch custom event that Recording component listens to
+                window.dispatchEvent(new CustomEvent('recording:pause-resume'));
+              }}
+              sx={{
+                width: 64,
+                height: 64,
+                borderRadius: 1,
+                backgroundColor: '#D1D1D1',
+                border: '1px solid rgba(0, 0, 0, 0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                '&:hover': {
+                  backgroundColor: '#c5c5c5',
+                },
+              }}
+            >
+              <Pause />
+            </IconButton>
+          )}
+
+          {/* Stop Button */}
           <IconButton
             onClick={() => {
               // Dispatch custom event that Recording component listens to
-              window.dispatchEvent(new CustomEvent('recording:pause-resume'));
+              window.dispatchEvent(new CustomEvent('recording:stop'));
+            }}
+            disabled={!isRecording}
+            sx={{
+              width: 64,
+              height: 64,
+              borderRadius: 1,
+              backgroundColor: 'white',
+              border: '1px solid rgba(0, 0, 0, 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              '&:hover': {
+                backgroundColor: '#f5f5f5',
+              },
+              '&:disabled': {
+                opacity: 0.5,
+              },
+            }}
+          >
+            <Stop />
+          </IconButton>
+        </Box>
+
+        {/* Row 2: Empty space or additional controls */}
+        <Box 
+          sx={{ 
+            flex: 1,
+            borderRadius: '2px',
+          }} 
+        />
+      </Box>
+    );
+  }
+
+  // Playback Controls: Play/Pause, Stop
+  if (isPlayback) {
+    return (
+      <Box
+        sx={{
+          height: '150px',
+          width: '100%',
+          backgroundColor: '#1E1E1E',
+          borderRadius: '8px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '2px',
+          gap: '4px',
+          borderTop: '1px solid rgba(0, 0, 0, 0.1)',
+        }}
+      >
+        {/* Row 1: Control Buttons */}
+        <Box
+          sx={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '4px',
+            width: '100%',
+            borderRadius: '6px 2px 2px 6px', // top-left: 6px, top-right: 2px, bottom-right: 2px, bottom-left: 6px
+          }}
+        >
+          {/* Play/Pause Button */}
+          <IconButton
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('playback:play-pause'));
             }}
             sx={{
               width: 64,
@@ -174,98 +279,39 @@ const Controls: React.FC = () => {
               },
             }}
           >
-            <Pause />
+            <PlayArrow />
           </IconButton>
-        )}
 
-        {/* Stop Button */}
-        <IconButton
-          onClick={() => {
-            // Dispatch custom event that Recording component listens to
-            window.dispatchEvent(new CustomEvent('recording:stop'));
-          }}
-          disabled={!isRecording}
-          sx={{
-            width: 64,
-            height: 64,
-            borderRadius: 1,
-            backgroundColor: 'white',
-            border: '1px solid rgba(0, 0, 0, 0.1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            '&:hover': {
-              backgroundColor: '#f5f5f5',
-            },
-            '&:disabled': {
-              opacity: 0.5,
-            },
-          }}
-        >
-          <Stop />
-        </IconButton>
-      </Box>
-    );
-  }
+          {/* Stop Button */}
+          <IconButton
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('playback:stop'));
+            }}
+            sx={{
+              width: 64,
+              height: 64,
+              borderRadius: 1,
+              backgroundColor: 'white',
+              border: '1px solid rgba(0, 0, 0, 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              '&:hover': {
+                backgroundColor: '#f5f5f5',
+              },
+            }}
+          >
+            <Stop />
+          </IconButton>
+        </Box>
 
-  // Playback Controls: Play/Pause, Stop
-  if (isPlayback) {
-    return (
-      <Box
-        sx={{
-          height: '150px',
-          width: '100%',
-          backgroundColor: '#D1D1D1',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 2,
-          borderTop: '1px solid rgba(0, 0, 0, 0.1)',
-        }}
-      >
-        {/* Play/Pause Button */}
-        <IconButton
-          onClick={() => {
-            window.dispatchEvent(new CustomEvent('playback:play-pause'));
-          }}
-          sx={{
-            width: 64,
-            height: 64,
-            borderRadius: 1,
-            backgroundColor: 'white',
-            border: '1px solid rgba(0, 0, 0, 0.1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            '&:hover': {
-              backgroundColor: '#f5f5f5',
-            },
-          }}
-        >
-          <PlayArrow />
-        </IconButton>
-
-        {/* Stop Button */}
-        <IconButton
-          onClick={() => {
-            window.dispatchEvent(new CustomEvent('playback:stop'));
-          }}
-          sx={{
-            width: 64,
-            height: 64,
-            borderRadius: 1,
-            backgroundColor: 'white',
-            border: '1px solid rgba(0, 0, 0, 0.1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            '&:hover': {
-              backgroundColor: '#f5f5f5',
-            },
-          }}
-        >
-          <Stop />
-        </IconButton>
+        {/* Row 2: Empty space or additional controls */}
+        <Box 
+          sx={{ 
+            flex: 1,
+            borderRadius: '2px',
+          }} 
+        />
       </Box>
     );
   }
@@ -276,7 +322,8 @@ const Controls: React.FC = () => {
       sx={{
         height: '150px',
         width: '100%',
-        backgroundColor: '#D1D1D1',
+        backgroundColor: '#1E1E1E',
+        borderRadius: '8px',
         borderTop: '1px solid rgba(0, 0, 0, 0.1)',
       }}
     />
