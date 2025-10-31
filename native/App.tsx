@@ -33,62 +33,55 @@ export default function App() {
     <SafeAreaProvider>
       <PaperProvider theme={theme}>
         <View style={styles.appContainer}>
-          <NavigationContainer>
-            <Stack.Navigator
-              initialRouteName="Dashboard"
-              screenOptions={{
-                headerStyle: {
-                  backgroundColor: '#101010',
-                },
-                headerTintColor: '#fff',
-                headerTitleStyle: {
-                  fontWeight: '300',
-                },
-              }}
-            >
-              <Stack.Screen 
-                name="Dashboard" 
-                component={DashboardScreen}
-                options={{ title: 'Recordings', headerShown: false }}
-              />
-              <Stack.Screen 
-                name="Recording" 
-                component={RecordingScreen}
-                options={{ 
-                  title: 'Recording',
-                  headerBackVisible: false,
-                  gestureEnabled: false,
-                  headerShown: false,
+          {/* Screen Section - Main content area (matches web #191919 background) */}
+          <View style={styles.screenContainer}>
+            <NavigationContainer>
+              <Stack.Navigator
+                initialRouteName="Dashboard"
+                screenOptions={{
+                  headerStyle: {
+                    backgroundColor: '#101010',
+                  },
+                  headerTintColor: '#fff',
+                  headerTitleStyle: {
+                    fontWeight: '300',
+                  },
                 }}
-              />
-              <Stack.Screen 
-                name="Playback" 
-                component={PlaybackScreen}
-                options={{ 
-                  title: 'Playback',
-                  headerShown: false,
-                }}
-              />
-            </Stack.Navigator>
-          </NavigationContainer>
-          
+              >
+                <Stack.Screen 
+                  name="Dashboard" 
+                  component={DashboardScreen}
+                  options={{ title: 'Recordings', headerShown: false }}
+                />
+                <Stack.Screen 
+                  name="Recording" 
+                  component={RecordingScreen}
+                  options={{ 
+                    title: 'Recording',
+                    headerBackVisible: false,
+                    gestureEnabled: false,
+                    headerShown: false,
+                  }}
+                />
+                <Stack.Screen 
+                  name="Playback" 
+                  component={PlaybackScreen}
+                  options={{ 
+                    title: 'Playback',
+                    headerShown: false,
+                  }}
+                />
+              </Stack.Navigator>
+            </NavigationContainer>
+          </View>
+
           {/* Speaker Section - 40px fixed height */}
           <View style={styles.speakerContainer}>
             <Speaker />
           </View>
 
           {/* Controls Section - 150px fixed height */}
-          <Controls
-            onPauseResume={() => {
-              // Will be handled via navigation params or context
-            }}
-            onStop={() => {
-              // Will be handled via navigation params or context
-            }}
-            onPlayPause={() => {
-              // Will be handled via navigation params or context
-            }}
-          />
+          <Controls />
           
           <StatusBar style="light" />
         </View>
@@ -104,6 +97,13 @@ const styles = StyleSheet.create({
     padding: 8,
     gap: 16,
     borderRadius: 2,
+    overflow: 'hidden',
+  },
+  screenContainer: {
+    flex: 1,
+    minHeight: 0,
+    backgroundColor: '#191919',
+    borderRadius: 1,
     overflow: 'hidden',
   },
   speakerContainer: {

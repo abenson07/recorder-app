@@ -62,6 +62,18 @@ const Playback: React.FC = () => {
     isLoading: playerLoading,
   } = usePlayer(handlePlayBack, handlePlaybackEnd, maxDurationMsForPlayer);
 
+  // Register callbacks with store for Controls component
+  useEffect(() => {
+    setPlaybackCallbacks({
+      onPlayPause: handlePlayPause,
+      onStop: handleStop,
+    });
+    
+    return () => {
+      clearCallbacks();
+    };
+  }, [setPlaybackCallbacks, clearCallbacks, handlePlayPause, handleStop]);
+
   // Load recording on mount
   useEffect(() => {
     const load = async () => {

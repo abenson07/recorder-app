@@ -15,16 +15,12 @@ type RootStackParamList = {
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-interface ControlsProps {
-  onPauseResume?: () => void;
-  onStop?: () => void;
-  onPlayPause?: () => void;
-}
+interface ControlsProps {}
 
-const Controls: React.FC<ControlsProps> = ({ onPauseResume, onStop, onPlayPause }) => {
+const Controls: React.FC<ControlsProps> = () => {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute();
-  const { isRecording, isPaused, isPlaying } = useStore();
+  const { isRecording, isPaused, isPlaying, onRecordingPauseResume, onRecordingStop, onPlaybackPlayPause, onPlaybackStop } = useStore();
   const [wifiLightState, setWifiLightState] = useState<{ light: 'red' | 'green'; status: 'processing' | 'ready' }>({
     light: 'green',
     status: 'ready',
@@ -122,8 +118,8 @@ const Controls: React.FC<ControlsProps> = ({ onPauseResume, onStop, onPlayPause 
         <TouchableOpacity
           style={[styles.button, styles.leftButton]}
           onPress={() => {
-            if (isRecording && onPauseResume) {
-              onPauseResume();
+            if (isRecording && onRecordingPauseResume) {
+              onRecordingPauseResume();
             }
           }}
           activeOpacity={0.8}
@@ -154,7 +150,13 @@ const Controls: React.FC<ControlsProps> = ({ onPauseResume, onStop, onPlayPause 
           {/* Position 3: Stop/Save Button */}
           <TouchableOpacity
             style={[styles.button, styles.topRightButton]}
-            onPress={handleStopClick}
+            onPress={() => {
+              if (onRecordingStop) {
+                onRecordingStop();
+              } else {
+                handleStopClick();
+              }
+            }}
             activeOpacity={0.8}
             disabled={!isRecording}
           >
@@ -182,8 +184,8 @@ const Controls: React.FC<ControlsProps> = ({ onPauseResume, onStop, onPlayPause 
         <TouchableOpacity
           style={[styles.button, styles.leftButton]}
           onPress={() => {
-            if (onPlayPause) {
-              onPlayPause();
+            if (onPlaybackPlayPause) {
+              onPlaybackPlayPause();
             }
           }}
           activeOpacity={0.8}
@@ -214,7 +216,13 @@ const Controls: React.FC<ControlsProps> = ({ onPauseResume, onStop, onPlayPause 
           {/* Position 4: Stop Icon */}
           <TouchableOpacity
             style={[styles.button, styles.bottomRightButton]}
-            onPress={handleStopClick}
+            onPress={() => {
+              if (onPlaybackStop) {
+                onPlaybackStop();
+              } else {
+                handleStopClick();
+              }
+            }}
             activeOpacity={0.8}
           >
             <MaterialIcons name="stop" size={20} color="rgba(0, 0, 0, 0.6)" />

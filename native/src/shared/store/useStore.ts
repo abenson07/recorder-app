@@ -11,6 +11,11 @@ interface AppState {
   isPaused: boolean;
   isPlaying: boolean;
   isLoading: boolean;
+  // Callbacks for Controls component to trigger actions in Recording/Playback
+  onRecordingPauseResume?: () => void;
+  onRecordingStop?: () => void;
+  onPlaybackPlayPause?: () => void;
+  onPlaybackStop?: () => void;
   addRecording: (recording: Recording) => void;
   updateRecording: (id: string, updates: Partial<Recording>) => void;
   deleteRecording: (id: string) => Promise<void>;
@@ -18,6 +23,9 @@ interface AppState {
   setIsRecording: (isRecording: boolean) => void;
   setIsPaused: (isPaused: boolean) => void;
   setIsPlaying: (isPlaying: boolean) => void;
+  setRecordingCallbacks: (callbacks: { onPauseResume?: () => void; onStop?: () => void }) => void;
+  setPlaybackCallbacks: (callbacks: { onPlayPause?: () => void; onStop?: () => void }) => void;
+  clearCallbacks: () => void;
   loadRecordingsFromStorage: () => Promise<void>;
 }
 
@@ -43,6 +51,10 @@ export const useStore = create<AppState>((set, get) => ({
   isPaused: false,
   isPlaying: false,
   isLoading: false,
+  onRecordingPauseResume: undefined,
+  onRecordingStop: undefined,
+  onPlaybackPlayPause: undefined,
+  onPlaybackStop: undefined,
   
   addRecording: (recording) => {
     set((state) => {
@@ -99,6 +111,26 @@ export const useStore = create<AppState>((set, get) => ({
   
   setIsPlaying: (isPlaying) =>
     set({ isPlaying }),
+  
+  setRecordingCallbacks: (callbacks) =>
+    set({
+      onRecordingPauseResume: callbacks.onPauseResume,
+      onRecordingStop: callbacks.onStop,
+    }),
+  
+  setPlaybackCallbacks: (callbacks) =>
+    set({
+      onPlaybackPlayPause: callbacks.onPlayPause,
+      onPlaybackStop: callbacks.onStop,
+    }),
+  
+  clearCallbacks: () =>
+    set({
+      onRecordingPauseResume: undefined,
+      onRecordingStop: undefined,
+      onPlaybackPlayPause: undefined,
+      onPlaybackStop: undefined,
+    }),
   
   loadRecordingsFromStorage: async () => {
     set({ isLoading: true });

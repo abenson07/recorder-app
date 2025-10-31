@@ -22,7 +22,7 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const Recording: React.FC = () => {
   const navigation = useNavigation<NavigationProp>();
-  const { addRecording, setIsRecording, setIsPaused } = useStore();
+  const { addRecording, setIsRecording, setIsPaused, setRecordingCallbacks, clearCallbacks } = useStore();
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -71,6 +71,18 @@ const Recording: React.FC = () => {
     };
   }, [isRecording, setIsPaused]);
 
+  // Register callbacks with store for Controls component
+  useEffect(() => {
+    setRecordingCallbacks({
+      onPauseResume: handlePauseRecording,
+      onStop: handleStopRecording,
+    });
+    
+    return () => {
+      clearCallbacks();
+    };
+  }, [setRecordingCallbacks, clearCallbacks, handlePauseRecording, handleStopRecording]);
+
   // Auto-start recording on mount
   useEffect(() => {
     const start = async () => {
@@ -106,13 +118,13 @@ const Recording: React.FC = () => {
     }
   };
 
-  const handlePauseRecording = () => {
+  const handlePauseRecording = useCallback(() => {
     if (isPaused) {
       resumeRecorder();
     } else {
       pauseRecorder();
     }
-  };
+  }, [isPaused, resumeRecorder, pauseRecorder]);
 
   /**
    * Get duration from audio file (for native, we'll get it from the recording URI)
@@ -135,7 +147,7 @@ const Recording: React.FC = () => {
     }
   };
 
-  const handleStopRecording = async () => {
+  const handleStopRecording = useCallback(async () => {
     try {
       if (!isRecording) {
         return;
@@ -201,7 +213,7 @@ const Recording: React.FC = () => {
       setShowError(true);
       resetRecorder();
     }
-  };
+  }, [isRecording, getFinalDuration, stopRecorder, resetRecorder, addRecording, navigation, saveRecording]);
 
   const handleDeleteRecording = async () => {
     Alert.alert(
