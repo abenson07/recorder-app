@@ -1,6 +1,6 @@
 import React from 'react';
-import { Box, IconButton } from '@mui/material';
-import { PlayArrow, Pause, Stop } from '@mui/icons-material';
+import { Box, IconButton, Typography } from '@mui/material';
+import { PlayArrow, Pause, Stop, Wifi, Headset, TextFields, VolumeUp } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 
@@ -40,19 +40,22 @@ const Controls: React.FC = () => {
           borderTop: '1px solid rgba(0, 0, 0, 0.1)',
         }}
       >
-        {/* Record Button */}
+        {/* Position 1: Record Button */}
         <IconButton
           onClick={handleRecordClick}
           sx={{
             flex: 1,
-            borderRadius: '6px 2px 2px 6px', // top-left: 6px, top-right: 2px, bottom-right: 2px, bottom-left: 6px
-            backgroundColor: '#D1D1D1',
+            borderRadius: '6px 2px 2px 6px',
+            backgroundColor: '#D1D1D1 !important',
             border: '1px solid rgba(0, 0, 0, 0.1)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             '&:hover': {
-              backgroundColor: '#c5c5c5',
+              backgroundColor: '#D1D1D1 !important',
+            },
+            '&:disabled': {
+              backgroundColor: '#D1D1D1 !important',
             },
           }}
         >
@@ -66,9 +69,8 @@ const Controls: React.FC = () => {
           />
         </IconButton>
 
-        {/* Stop Button */}
-        <IconButton
-          onClick={handleStopClick}
+        {/* Position 2: Empty Button */}
+        <Box
           sx={{
             flex: 1,
             borderRadius: '2px',
@@ -77,58 +79,65 @@ const Controls: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            '&:hover': {
-              backgroundColor: '#c5c5c5',
-            },
+            pointerEvents: 'none',
           }}
-        >
-          <Box
-            sx={{
-              width: 20,
-              height: 20,
-              border: '2px solid rgba(0, 0, 0, 0.5)',
-              borderRadius: '50%',
-              position: 'relative',
-              '&::before': {
-                content: '""',
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%) rotate(45deg)',
-                width: 2,
-                height: 16,
-                backgroundColor: 'rgba(0, 0, 0, 0.5)',
-              },
-            }}
-          />
-        </IconButton>
+        />
 
-        {/* Additional Controls Area (flex column with equal height children) */}
+        {/* Position 3 & 4: Additional Controls Area (flex column with equal height children) */}
         <Box
           sx={{
             flex: 1,
             display: 'flex',
             flexDirection: 'column',
             gap: '2px',
-            borderRadius: '2px 6px 6px 2px', // top-left: 2px, top-right: 6px, bottom-right: 6px, bottom-left: 2px
+            borderRadius: '2px 6px 6px 2px',
           }}
         >
-          <Box
+          {/* Position 3: WiFi Icon */}
+          <IconButton
             sx={{
               flex: 1,
-              backgroundColor: '#D1D1D1',
-              borderRadius: '2px 6px 2px 2px', // top-left: 2px, top-right: 6px, bottom-right: 2px, bottom-left: 2px
+              borderRadius: '2px 6px 2px 2px',
+              backgroundColor: '#D1D1D1 !important',
               border: '1px solid rgba(0, 0, 0, 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'default',
+              '&:hover': {
+                backgroundColor: '#D1D1D1 !important',
+              },
+              '&:disabled': {
+                backgroundColor: '#D1D1D1 !important',
+              },
             }}
-          />
-          <Box
+            disabled
+          >
+            <Wifi />
+          </IconButton>
+
+          {/* Position 4: Headphones Icon */}
+          <IconButton
             sx={{
               flex: 1,
-              backgroundColor: '#D1D1D1',
-              borderRadius: '2px 2px 6px 2px', // top-left: 2px, top-right: 2px, bottom-right: 6px, bottom-left: 2px
+              borderRadius: '2px 2px 6px 2px',
+              backgroundColor: '#D1D1D1 !important',
               border: '1px solid rgba(0, 0, 0, 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'default',
+              '&:hover': {
+                backgroundColor: '#D1D1D1 !important',
+              },
+              '&:disabled': {
+                backgroundColor: '#D1D1D1 !important',
+              },
             }}
-          />
+            disabled
+          >
+            <Headset />
+          </IconButton>
         </Box>
       </Box>
     );
@@ -146,86 +155,112 @@ const Controls: React.FC = () => {
           backgroundColor: '#1E1E1E',
           borderRadius: '8px',
           display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
+          flexDirection: 'row',
+          alignItems: 'stretch',
           padding: '2px',
-          gap: '4px',
+          gap: '2px',
           borderTop: '1px solid rgba(0, 0, 0, 0.1)',
         }}
       >
-        {/* Row 1: Control Buttons */}
+        {/* Position 1: Pause Button (always visible) */}
+        <IconButton
+          onClick={() => {
+            if (isRecording) {
+              window.dispatchEvent(new CustomEvent('recording:pause-resume'));
+            }
+          }}
+          sx={{
+            flex: 1,
+            borderRadius: '6px 2px 2px 6px',
+            backgroundColor: '#D1D1D1 !important',
+            border: '1px solid rgba(0, 0, 0, 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            '&:hover': {
+              backgroundColor: '#D1D1D1 !important',
+            },
+            '&:disabled': {
+              backgroundColor: '#D1D1D1 !important',
+            },
+          }}
+        >
+          <Pause sx={{ opacity: isRecording ? 1 : 0.3, transition: 'opacity 0.3s' }} />
+        </IconButton>
+
+        {/* Position 2: Empty Button */}
+        <Box
+          sx={{
+            flex: 1,
+            borderRadius: '2px',
+            backgroundColor: '#D1D1D1',
+            border: '1px solid rgba(0, 0, 0, 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            pointerEvents: 'none',
+          }}
+        />
+
+        {/* Position 3 & 4: Additional Controls Area */}
         <Box
           sx={{
             flex: 1,
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '4px',
-            width: '100%',
-            borderRadius: '6px 2px 2px 6px', // top-left: 6px, top-right: 2px, bottom-right: 2px, bottom-left: 6px
+            flexDirection: 'column',
+            gap: '2px',
+            borderRadius: '2px 6px 6px 2px',
           }}
         >
-          {/* Pause/Resume Button - Trigger custom event */}
-          {isRecording && (
-            <IconButton
-              onClick={() => {
-                // Dispatch custom event that Recording component listens to
-                window.dispatchEvent(new CustomEvent('recording:pause-resume'));
-              }}
-              sx={{
-                width: 64,
-                height: 64,
-                borderRadius: 1,
-                backgroundColor: '#D1D1D1',
-                border: '1px solid rgba(0, 0, 0, 0.1)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                '&:hover': {
-                  backgroundColor: '#c5c5c5',
-                },
-              }}
-            >
-              <Pause />
-            </IconButton>
-          )}
-
-          {/* Stop Button */}
+          {/* Position 3: Stop/Save Button */}
           <IconButton
             onClick={() => {
-              // Dispatch custom event that Recording component listens to
-              window.dispatchEvent(new CustomEvent('recording:stop'));
+              if (isRecording) {
+                window.dispatchEvent(new CustomEvent('recording:stop'));
+              }
             }}
-            disabled={!isRecording}
             sx={{
-              width: 64,
-              height: 64,
-              borderRadius: 1,
-              backgroundColor: 'white',
+              flex: 1,
+              borderRadius: '2px 6px 2px 2px',
+              backgroundColor: '#D1D1D1 !important',
               border: '1px solid rgba(0, 0, 0, 0.1)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               '&:hover': {
-                backgroundColor: '#f5f5f5',
+                backgroundColor: '#D1D1D1 !important',
               },
               '&:disabled': {
-                opacity: 0.5,
+                backgroundColor: '#D1D1D1 !important',
               },
             }}
           >
-            <Stop />
+            <Stop sx={{ opacity: isRecording ? 1 : 0.3, transition: 'opacity 0.3s' }} />
+          </IconButton>
+
+          {/* Position 4: Headphones Icon */}
+          <IconButton
+            sx={{
+              flex: 1,
+              borderRadius: '2px 2px 6px 2px',
+              backgroundColor: '#D1D1D1 !important',
+              border: '1px solid rgba(0, 0, 0, 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'default',
+              '&:hover': {
+                backgroundColor: '#D1D1D1 !important',
+              },
+              '&:disabled': {
+                backgroundColor: '#D1D1D1 !important',
+              },
+            }}
+            disabled
+          >
+            <Headset />
           </IconButton>
         </Box>
-
-        {/* Row 2: Empty space or additional controls */}
-        <Box 
-          sx={{ 
-            flex: 1,
-            borderRadius: '2px',
-          }} 
-        />
       </Box>
     );
   }
@@ -240,78 +275,118 @@ const Controls: React.FC = () => {
           backgroundColor: '#1E1E1E',
           borderRadius: '8px',
           display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
+          flexDirection: 'row',
+          alignItems: 'stretch',
           padding: '2px',
-          gap: '4px',
+          gap: '2px',
           borderTop: '1px solid rgba(0, 0, 0, 0.1)',
         }}
       >
-        {/* Row 1: Control Buttons */}
+        {/* Position 1: Pause/Play Dual Icons */}
+        <IconButton
+          onClick={() => {
+            window.dispatchEvent(new CustomEvent('playback:play-pause'));
+          }}
+          sx={{
+            flex: 1,
+            borderRadius: '6px 2px 2px 6px',
+            backgroundColor: '#D1D1D1 !important',
+            border: '1px solid rgba(0, 0, 0, 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 0.5,
+            '&:hover': {
+              backgroundColor: '#D1D1D1 !important',
+            },
+            '&:disabled': {
+              backgroundColor: '#D1D1D1 !important',
+            },
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <Pause sx={{ fontSize: '1.2rem' }} />
+            <Typography sx={{ fontSize: '0.875rem', color: 'rgba(0, 0, 0, 0.6)' }}>/</Typography>
+            <PlayArrow sx={{ fontSize: '1.2rem' }} />
+          </Box>
+        </IconButton>
+
+        {/* Position 2: Empty Button */}
+        <Box
+          sx={{
+            flex: 1,
+            borderRadius: '2px',
+            backgroundColor: '#D1D1D1',
+            border: '1px solid rgba(0, 0, 0, 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            pointerEvents: 'none',
+          }}
+        />
+
+        {/* Position 3 & 4: Additional Controls Area */}
         <Box
           sx={{
             flex: 1,
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '4px',
-            width: '100%',
-            borderRadius: '6px 2px 2px 6px', // top-left: 6px, top-right: 2px, bottom-right: 2px, bottom-left: 6px
+            flexDirection: 'column',
+            gap: '2px',
+            borderRadius: '2px 6px 6px 2px',
           }}
         >
-          {/* Play/Pause Button */}
+          {/* Position 3: Text/Audio Dual Icons */}
           <IconButton
-            onClick={() => {
-              window.dispatchEvent(new CustomEvent('playback:play-pause'));
-            }}
             sx={{
-              width: 64,
-              height: 64,
-              borderRadius: 1,
-              backgroundColor: 'white',
+              flex: 1,
+              borderRadius: '2px 6px 2px 2px',
+              backgroundColor: '#D1D1D1 !important',
               border: '1px solid rgba(0, 0, 0, 0.1)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              cursor: 'default',
+              gap: 0.5,
               '&:hover': {
-                backgroundColor: '#f5f5f5',
+                backgroundColor: '#D1D1D1 !important',
+              },
+              '&:disabled': {
+                backgroundColor: '#D1D1D1 !important',
               },
             }}
+            disabled
           >
-            <PlayArrow />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <TextFields sx={{ fontSize: '1.2rem' }} />
+              <Typography sx={{ fontSize: '0.875rem', color: 'rgba(0, 0, 0, 0.6)' }}>/</Typography>
+              <VolumeUp sx={{ fontSize: '1.2rem' }} />
+            </Box>
           </IconButton>
 
-          {/* Stop Button */}
+          {/* Position 4: Stop Icon (back functionality) */}
           <IconButton
             onClick={() => {
               window.dispatchEvent(new CustomEvent('playback:stop'));
             }}
             sx={{
-              width: 64,
-              height: 64,
-              borderRadius: 1,
-              backgroundColor: 'white',
+              flex: 1,
+              borderRadius: '2px 2px 6px 2px',
+              backgroundColor: '#D1D1D1 !important',
               border: '1px solid rgba(0, 0, 0, 0.1)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               '&:hover': {
-                backgroundColor: '#f5f5f5',
+                backgroundColor: '#D1D1D1 !important',
+              },
+              '&:disabled': {
+                backgroundColor: '#D1D1D1 !important',
               },
             }}
           >
             <Stop />
           </IconButton>
         </Box>
-
-        {/* Row 2: Empty space or additional controls */}
-        <Box 
-          sx={{ 
-            flex: 1,
-            borderRadius: '2px',
-          }} 
-        />
       </Box>
     );
   }
