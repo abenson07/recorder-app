@@ -5,6 +5,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useStore } from '../store/useStore';
 import { loadRecording } from '../lib/storageAdapter';
 import { Recording } from '../shared/store/types';
+import { MaterialIcons } from '@expo/vector-icons';
 
 type RootStackParamList = {
   Dashboard: undefined;
@@ -88,24 +89,25 @@ const Dashboard: React.FC = () => {
   };
 
   const renderRecordingItem = ({ item }: { item: Recording }) => {
+    // Extract date part from filename (remove "Recording - " prefix and everything after comma)
+    const displayName = item.fileName.replace('Recording - ', '').split(',')[0] || item.fileName;
+    
     return (
       <TouchableOpacity
         style={styles.recordingItem}
         onPress={() => handleRecordingPress(item)}
-        activeOpacity={0.7}
+        activeOpacity={0.9}
       >
-        <View style={styles.recordingContent}>
-          <Text style={styles.recordingName} numberOfLines={1}>
-            {item.fileName}
+        <Text style={styles.recordingName} numberOfLines={1}>
+          {displayName}
+        </Text>
+        <View style={styles.recordingMeta}>
+          <Text style={styles.recordingDuration}>
+            {formatDuration(item.duration || 0)}
           </Text>
-          <View style={styles.recordingMeta}>
-            <Text style={styles.recordingDuration}>
-              {formatDuration(item.duration || 0)}
-            </Text>
-            <Text style={styles.recordingTime}>
-              {formatRelativeTime(item.createdAt)}
-            </Text>
-          </View>
+          <Text style={styles.recordingTime}>
+            {formatRelativeTime(item.createdAt)}
+          </Text>
         </View>
       </TouchableOpacity>
     );
@@ -121,34 +123,35 @@ const Dashboard: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {recordings.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyStateText}>No recordings yet</Text>
-          <TouchableOpacity
-            style={styles.newRecordingButton}
-            onPress={handleNewRecording}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.newRecordingButtonText}>Start Recording</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerText}>My recordings</Text>
+        <Text style={styles.headerCount}>{recordings.length} recordings</Text>
+      </View>
+
+      {/* Recordings List */}
+      <View style={styles.listContainer}>
+        {isLoading ? (
+          <View style={styles.centered}>
+            <ActivityIndicator size="large" color="rgba(255, 255, 255, 0.5)" />
+          </View>
+        ) : recordings.length === 0 ? (
+          <View style={styles.emptyState}>
+            <MaterialIcons name="mic" size={64} color="rgba(255, 255, 255, 0.3)" />
+            <Text style={styles.emptyStateTitle}>No recordings yet</Text>
+            <Text style={styles.emptyStateSubtitle}>
+              Tap the record button to start your first recording
+            </Text>
+          </View>
+        ) : (
           <FlatList
             data={recordings}
             renderItem={renderRecordingItem}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContent}
           />
-          <TouchableOpacity
-            style={styles.fab}
-            onPress={handleNewRecording}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.fabText}>+</Text>
-          </TouchableOpacity>
-        </>
-      )}
+        )}
+      </View>
     </View>
   );
 };
@@ -159,86 +162,88 @@ const styles = StyleSheet.create({
     backgroundColor: '#101010',
   },
   centered: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  listContent: {
-    padding: 16,
-    paddingBottom: 80, // Space for FAB
-  },
-  recordingItem: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 12,
-  },
-  recordingContent: {
-    flex: 1,
-  },
-  recordingName: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    fontWeight: '400',
-    marginBottom: 8,
-  },
-  recordingMeta: {
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  headerText: {
+    fontSize: 12,
+    color: 'rgba(230, 230, 230, 0.5)', // #E6E6E6 at 50% opacity
+    fontWeight: '300',
+    fontFamily: 'System', // Will need to add Ubuntu Sans font
+  },
+  headerCount: {
+    fontSize: 12,
+    color: 'rgba(230, 230, 230, 0.5)', // #E6E6E6 at 50% opacity
+    fontWeight: '300',
+    fontFamily: 'System',
+  },
+  listContainer: {
+    flex: 1,
+  },
+  listContent: {
+    padding: 0,
+  },
+  recordingItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderWidth: 0,
+  },
+  recordingName: {
+    fontSize: 24,
+    color: '#E6E6E6', // 100% opacity
+    fontWeight: '300',
+    fontFamily: 'System',
+    lineHeight: 24,
+    marginBottom: 4,
+  },
+  recordingMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   recordingDuration: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 12,
+    color: '#E6E6E6', // 100% opacity
     fontWeight: '300',
+    fontFamily: 'System',
   },
   recordingTime: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.5)',
+    color: 'rgba(230, 230, 230, 0.5)', // #E6E6E6 at 50% opacity
     fontWeight: '300',
+    fontFamily: 'System',
   },
   emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 32,
+    paddingHorizontal: 24,
+    paddingVertical: 48,
   },
-  emptyStateText: {
-    fontSize: 18,
-    color: 'rgba(255, 255, 255, 0.6)',
-    marginBottom: 24,
+  emptyStateTitle: {
+    fontSize: 20,
+    color: 'rgba(255, 255, 255, 0.5)',
+    fontWeight: '400',
+    marginTop: 16,
+    marginBottom: 8,
+    fontFamily: 'System',
+  },
+  emptyStateSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.4)',
     fontWeight: '300',
-  },
-  newRecordingButton: {
-    backgroundColor: '#1976d2',
-    paddingHorizontal: 32,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  newRecordingButtonText: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    fontWeight: '500',
-  },
-  fab: {
-    position: 'absolute',
-    right: 20,
-    bottom: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#1976d2',
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-  },
-  fabText: {
-    fontSize: 32,
-    color: '#FFFFFF',
-    fontWeight: '300',
+    textAlign: 'center',
+    fontFamily: 'System',
   },
 });
 
