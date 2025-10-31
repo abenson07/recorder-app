@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { PaperProvider } from 'react-native-paper';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StyleSheet, View, Text } from 'react-native';
+import { useStore } from './src/store/useStore';
 
 const Stack = createNativeStackNavigator();
 
@@ -18,6 +19,13 @@ function DashboardScreen() {
 }
 
 export default function App() {
+  const loadRecordings = useStore((state) => state.loadRecordingsFromStorage);
+
+  // Load recordings on app start
+  useEffect(() => {
+    loadRecordings();
+  }, [loadRecordings]);
+
   const theme = {
     colors: {
       primary: '#1976d2',
