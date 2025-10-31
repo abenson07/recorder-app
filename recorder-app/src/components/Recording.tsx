@@ -2,14 +2,9 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
-  CircularProgress,
   Alert,
   Snackbar,
 } from '@mui/material';
-import {
-  Mic,
-  MicOff,
-} from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { useRecorder } from '../hooks/useRecorder';
@@ -167,48 +162,82 @@ const Recording: React.FC = () => {
 
   return (
     <Box sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', backgroundColor: '#101010' }}>
-      {/* Recording Status */}
-      <Box sx={{ flex: 1, p: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+      {/* Top Section: Header with "New recording" and "32kbps" */}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          px: '16px',
+          py: 2,
+        }}
+      >
+        {/* Left: Red dot + "New recording" */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box
+            sx={{
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              backgroundColor: '#f44336',
+            }}
+          />
+          <Typography
+            sx={{
+              color: '#FFFFFF',
+              fontSize: '14px',
+              fontWeight: 400,
+            }}
+          >
+            New recording
+          </Typography>
+        </Box>
+
+        {/* Right: "32kbps" */}
         <Typography
-          variant="h3"
-          component="div"
-          gutterBottom
           sx={{
-            fontWeight: 300,
-            color: isRecording ? '#ff9800' : 'rgba(255, 255, 255, 0.7)',
-            transition: 'color 0.3s ease',
-            mb: 3,
+            color: '#FFFFFF',
+            fontSize: '14px',
+            fontWeight: 400,
+          }}
+        >
+          32kbps
+        </Typography>
+      </Box>
+
+      {/* Middle Section: Waveform area (fills remaining space) */}
+      <Box
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          backgroundColor: '#101010',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {/* Waveform placeholder - empty for now */}
+      </Box>
+
+      {/* Bottom Section: Large timestamp */}
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'flex-start',
+          px: '16px',
+          py: 3,
+        }}
+      >
+        <Typography
+          sx={{
+            fontSize: '56px',
+            fontWeight: 200,
+            color: '#FFFFFF',
+            lineHeight: 1,
           }}
         >
           {recordTime}
         </Typography>
-
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 4 }}>
-          {isRecording ? (
-            <Mic sx={{ color: '#f44336', fontSize: 48, animation: 'pulse 1.5s infinite' }} />
-          ) : (
-            <MicOff sx={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: 48 }} />
-          )}
-        </Box>
-
-        <Typography
-          variant="body1"
-          sx={{
-            color: 'rgba(255, 255, 255, 0.6)',
-          }}
-          gutterBottom
-        >
-          {isRecording ? (isPaused ? 'Paused' : 'Recording...') : 'Ready to record'}
-        </Typography>
-
-        {isLoading && (
-          <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-            <CircularProgress size={20} sx={{ color: 'rgba(255, 255, 255, 0.5)' }} />
-            <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
-              {isRecording ? 'Stopping...' : 'Starting...'}
-            </Typography>
-          </Box>
-        )}
       </Box>
 
       {/* Recording Controls will be handled by Controls component */}
