@@ -176,7 +176,7 @@ const Playback: React.FC = () => {
     return `${month} ${day}, ${year} at ${displayHours}:${displayMinutes}${ampm}`;
   };
 
-  const handlePlayPause = async () => {
+  const handlePlayPause = useCallback(async () => {
     if (!recording?.audioUrl) return;
 
     if (isPlaying) {
@@ -190,7 +190,7 @@ const Playback: React.FC = () => {
         setShowError(true);
       }
     }
-  };
+  }, [recording?.audioUrl, isPlaying, pausePlayer, startPlayer]);
 
   const handleStop = async () => {
     await stopPlayer();
