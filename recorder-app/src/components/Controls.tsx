@@ -1,14 +1,58 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Box, IconButton, Typography } from '@mui/material';
 import { PlayArrow, Pause, Stop, Wifi, Headset, TextFields, VolumeUp } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import Dial from './Dial';
+import Light from './Light';
 
 const Controls: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isRecording, isPlaying } = useStore();
+  const { isRecording, isPaused, isPlaying } = useStore();
+  const [wifiLightState, setWifiLightState] = useState<{ light: 'red' | 'green'; status: 'processing' | 'ready' }>({
+    light: 'green',
+    status: 'ready',
+  });
+  const prevIsRecordingRef = useRef(isRecording);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Handle WiFi light blinking when recording stops
+  useEffect(() => {
+    // Detect transition from recording to not recording
+    if (prevIsRecordingRef.current && !isRecording) {
+      // Recording just stopped - blink WiFi light red for 5 seconds
+      setWifiLightState({ light: 'red', status: 'processing' });
+      
+      // Clear any existing timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      
+      // Set timeout for exactly 5 seconds (5000ms)
+      timeoutRef.current = setTimeout(() => {
+        setWifiLightState({ light: 'green', status: 'ready' });
+        timeoutRef.current = null;
+      }, 5000);
+    } else if (!prevIsRecordingRef.current && isRecording) {
+      // If recording starts again, ensure WiFi light is green
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      setWifiLightState({ light: 'green', status: 'ready' });
+    }
+    
+    prevIsRecordingRef.current = isRecording;
+    
+    // Cleanup on unmount only
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+  }, [isRecording]);
 
   // Determine current screen state
   const isDashboard = location.pathname === '/dashboard' || location.pathname === '/';
@@ -107,6 +151,7 @@ const Controls: React.FC = () => {
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'default',
+              gap: 0.5,
               '&:hover': {
                 backgroundColor: '#D1D1D1 !important',
               },
@@ -117,6 +162,7 @@ const Controls: React.FC = () => {
             disabled
           >
             <Wifi />
+            <Light light={wifiLightState.light} status={wifiLightState.status} />
           </IconButton>
 
           {/* Position 4: Headphones Icon */}
@@ -165,7 +211,7 @@ const Controls: React.FC = () => {
           borderTop: '1px solid rgba(0, 0, 0, 0.1)',
         }}
       >
-        {/* Position 1: Pause Button (always visible) */}
+        {/* Position 1: Pause/Play Dual Icons */}
         <IconButton
           onClick={() => {
             if (isRecording) {
@@ -180,6 +226,7 @@ const Controls: React.FC = () => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            gap: 0.5,
             '&:hover': {
               backgroundColor: '#D1D1D1 !important',
             },
@@ -188,7 +235,11 @@ const Controls: React.FC = () => {
             },
           }}
         >
-          <Pause sx={{ opacity: isRecording ? 1 : 0.3, transition: 'opacity 0.3s' }} />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <Pause sx={{ fontSize: '1.2rem', opacity: isRecording && !isPaused ? 1 : 0.3, transition: 'opacity 0.3s' }} />
+            <Typography sx={{ fontSize: '0.875rem', color: 'rgba(0, 0, 0, 0.6)' }}>/</Typography>
+            <PlayArrow sx={{ fontSize: '1.2rem', opacity: isRecording && isPaused ? 1 : 0.3, transition: 'opacity 0.3s' }} />
+          </Box>
         </IconButton>
 
         {/* Position 2: Dial */}

@@ -2,23 +2,17 @@ import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
-  IconButton,
-  Button,
-  Paper,
-  Slider,
-  Chip,
-  Fade,
-  Slide,
   CircularProgress,
 } from '@mui/material';
 import {
-  VolumeUp,
+  PlayArrow,
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { loadRecording } from '../lib/localStorage';
 import { usePlayer } from '../hooks/usePlayer';
 import { Recording } from '../store/useStore';
+import Timestamp from './Timestamp';
 
 const Playback: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -86,9 +80,24 @@ const Playback: React.FC = () => {
 
   const formatTime = (milliseconds: number): string => {
     const totalSeconds = Math.floor(milliseconds / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  const formatRecordedDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    const month = date.toLocaleDateString('en-US', { month: 'long' });
+    const day = date.getDate();
+    const year = date.getFullYear();
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    const ampm = hours >= 12 ? 'pm' : 'am';
+    const displayHours = hours % 12 || 12;
+    const displayMinutes = minutes.toString().padStart(2, '0');
+    
+    return `${month} ${day}, ${year} at ${displayHours}:${displayMinutes}${ampm}`;
   };
 
   const handlePlayPause = async () => {
@@ -163,115 +172,121 @@ const Playback: React.FC = () => {
     );
   }
 
+  const recordingDuration = formatTime((durationMs || recording.duration * 1000) || 0);
+  const currentPlayTime = formatTime(currentPosition || 0);
+  const maxDuration = isFinite(durationMs) && durationMs > 0 ? durationMs : (isFinite(recording.duration) && recording.duration > 0 ? recording.duration * 1000 : 100);
+  const progressPercentage = maxDuration > 0 ? Math.min((currentPosition / maxDuration) * 100, 100) : 0;
+
   return (
     <Box sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', backgroundColor: '#101010' }}>
-
-      {/* Content Area */}
-      <Box sx={{ flex: 1, p: 2, overflow: 'auto' }}>
-        {/* Recording Title */}
-        <Typography
-          variant="h6"
-          sx={{
-            color: 'rgba(255, 255, 255, 0.9)',
-            mb: 2,
-            fontSize: '1rem',
-            fontWeight: 300,
-          }}
-        >
-          {recording.fileName.replace('Recording - ', '').split(',')[0] || recording.fileName}
-        </Typography>
-
-        {recording.status === 'transcribing' ? (
-          <Fade in timeout={600}>
-            <Box sx={{ textAlign: 'center', py: 2 }}>
-              <CircularProgress sx={{ mb: 2, color: 'rgba(255, 255, 255, 0.5)' }} />
-              <Typography variant="h6" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 1 }}>
-                Transcribing...
-              </Typography>
-              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.5)', mb: 2 }}>
-                Your recording is being processed.
-              </Typography>
-            </Box>
-          </Fade>
-        ) : recording.status === 'done' && recording.transcript ? (
-          <Slide direction="up" in timeout={800}>
-            <Paper sx={{ p: 2, backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: 1 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                <VolumeUp sx={{ color: 'rgba(255, 255, 255, 0.7)' }} />
-                <Typography variant="subtitle1" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                  Transcript:
-                </Typography>
-              </Box>
-              <Typography variant="body1" sx={{ lineHeight: 1.6, color: 'rgba(255, 255, 255, 0.9)' }}>
-                {recording.transcript}
-              </Typography>
-            </Paper>
-          </Slide>
-        ) : (
-          <Slide direction="up" in timeout={800}>
-            <Paper sx={{ p: 2, backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: 1 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                <VolumeUp sx={{ color: 'rgba(255, 255, 255, 0.5)' }} />
-                <Typography variant="subtitle1" sx={{ color: 'rgba(255, 255, 255, 0.5)' }}>
-                  Transcript:
-                </Typography>
-              </Box>
-              <Typography variant="body1" sx={{ lineHeight: 1.6, fontStyle: 'italic', color: 'rgba(255, 255, 255, 0.5)' }}>
-                {recording.status === 'error' 
-                  ? 'There was an error processing this recording.'
-                  : 'Transcript will appear here once processing is complete...'
-                }
-              </Typography>
-            </Paper>
-          </Slide>
-        )}
-      </Box>
-
-      {/* Playback Controls - These will be moved to Controls component, keeping minimal UI here */}
-      <Box sx={{ p: 2, borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
-        {/* Progress Bar */}
-        <Box sx={{ mb: 2 }}>
-          <Slider
-            value={isFinite(currentPosition) ? currentPosition : 0}
-            min={0}
-            max={isFinite(durationMs) && durationMs > 0 ? durationMs : (isFinite(recording.duration) && recording.duration > 0 ? recording.duration * 1000 : 100)}
-            onChange={handleSeek}
-            disabled={!recording.audioUrl || playerLoading}
+      {/* Top Section: Header with play icon + recording name and duration */}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          px: '16px',
+          py: 2,
+        }}
+      >
+        {/* Left: Play icon + Recording name */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <PlayArrow sx={{ color: '#E6E6E6', fontSize: '20px' }} />
+          <Typography
             sx={{
-              mb: 1,
-              color: 'rgba(255, 255, 255, 0.7)',
-              '& .MuiSlider-thumb': {
-                backgroundColor: 'white',
-              },
-              '& .MuiSlider-track': {
-                backgroundColor: 'white',
-              },
-              '& .MuiSlider-rail': {
-                backgroundColor: 'rgba(255, 255, 255, 0.3)',
-              },
+              color: '#E6E6E6',
+              fontSize: '14px',
+              fontWeight: 400,
             }}
-          />
-          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-            <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)' }}>
-              {playTime || formatTime(0)}
-            </Typography>
-            <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)' }}>
-              {duration || formatTime(recording.duration * 1000)}
-            </Typography>
-          </Box>
+          >
+            {recording.fileName.replace('Recording - ', '').split(',')[0] || recording.fileName}
+          </Typography>
         </Box>
 
-        {/* Error Display */}
-        {playerError && (
-          <Box sx={{ mb: 1, textAlign: 'center' }}>
-            <Typography variant="caption" sx={{ color: '#f44336' }}>
-              {playerError}
-            </Typography>
-          </Box>
-        )}
-
-        {/* Playback controls will be handled by Controls component */}
+        {/* Right: Recording duration */}
+        <Typography
+          sx={{
+            color: '#E6E6E6',
+            fontSize: '14px',
+            fontWeight: 400,
+          }}
+        >
+          {recordingDuration}
+        </Typography>
       </Box>
+
+      {/* Middle Section: Empty area (fills remaining space) */}
+      <Box
+        sx={{
+          flex: 1,
+          minHeight: 0,
+          backgroundColor: '#101010',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {/* Empty for now */}
+      </Box>
+
+      {/* Bottom Section: Recorded date, timestamp, and progress bar */}
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          px: '16px',
+          py: 3,
+        }}
+      >
+        {/* Recorded date/time */}
+        <Typography
+          sx={{
+            fontSize: '12px',
+            color: 'rgba(230, 230, 230, 0.5)',
+            mb: 1,
+          }}
+        >
+          Recorded {formatRecordedDate(recording.createdAt)}
+        </Typography>
+
+        {/* Large timestamp */}
+        <Box sx={{ mb: 2 }}>
+          <Timestamp time={currentPlayTime} />
+        </Box>
+
+        {/* Playback progress bar */}
+        <Box sx={{ position: 'relative', width: '100%' }}>
+          {/* Base line (full width) */}
+          <Box
+            sx={{
+              width: '100%',
+              height: '1px',
+              backgroundColor: 'rgba(230, 230, 230, 0.3)',
+            }}
+          />
+          {/* Progress line (on top) */}
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: `${progressPercentage}%`,
+              height: '2px',
+              backgroundColor: 'rgba(230, 230, 230, 0.7)',
+              transition: 'width 0.1s linear',
+            }}
+          />
+        </Box>
+      </Box>
+
+      {/* Error Display */}
+      {playerError && (
+        <Box sx={{ px: '16px', pb: 2, textAlign: 'center' }}>
+          <Typography variant="caption" sx={{ color: '#f44336' }}>
+            {playerError}
+          </Typography>
+        </Box>
+      )}
     </Box>
   );
 };

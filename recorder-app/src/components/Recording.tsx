@@ -9,10 +9,11 @@ import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
 import { useRecorder } from '../hooks/useRecorder';
 import { saveRecording } from '../lib/localStorage';
+import Timestamp from './Timestamp';
 
 const Recording: React.FC = () => {
   const navigate = useNavigate();
-  const { addRecording, setIsRecording } = useStore();
+  const { addRecording, setIsRecording, setIsPaused } = useStore();
   const [showError, setShowError] = useState(false);
   const [recordBackData, setRecordBackData] = useState<{ currentPosition: number } | null>(null);
 
@@ -37,6 +38,21 @@ const Recording: React.FC = () => {
   useEffect(() => {
     setIsRecording(isRecording);
   }, [isRecording, setIsRecording]);
+
+  // Update global paused state
+  useEffect(() => {
+    setIsPaused(isPaused);
+  }, [isPaused, setIsPaused]);
+
+  // Reset paused state when recording stops or component unmounts
+  useEffect(() => {
+    if (!isRecording) {
+      setIsPaused(false);
+    }
+    return () => {
+      setIsPaused(false);
+    };
+  }, [isRecording, setIsPaused]);
 
   // Show error if recording fails
   useEffect(() => {
@@ -77,7 +93,7 @@ const Recording: React.FC = () => {
     try {
       await startRecorder();
     } catch (err) {
-      console.error('Failed to start recording:', err);
+      // Error handling done via error state and snackbar
     }
   };
 
@@ -131,13 +147,10 @@ const Recording: React.FC = () => {
       // Add to store
       addRecording(newRecording);
 
-      alert('Recording saved successfully!');
-      
       // Clean up
       resetRecorder();
       navigate('/dashboard');
     } catch (err) {
-      console.error('Failed to save recording:', err);
       alert(`Failed to save recording: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
@@ -228,16 +241,7 @@ const Recording: React.FC = () => {
           py: 3,
         }}
       >
-        <Typography
-          sx={{
-            fontSize: '56px',
-            fontWeight: 200,
-            color: '#FFFFFF',
-            lineHeight: 1,
-          }}
-        >
-          {recordTime}
-        </Typography>
+        <Timestamp time={recordTime} />
       </Box>
 
       {/* Recording Controls will be handled by Controls component */}

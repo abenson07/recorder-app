@@ -1,7 +1,11 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
+import { useStore } from '../store/useStore';
+import Light from './Light';
 
 const Speaker: React.FC = () => {
+  const { isRecording } = useStore();
+
   return (
     <Box
       sx={{
@@ -10,8 +14,6 @@ const Speaker: React.FC = () => {
         display: 'flex',
         alignItems: 'center',
         px: 2,
-        borderTop: '1px solid rgba(0, 0, 0, 0.1)',
-        borderBottom: '1px solid rgba(0, 0, 0, 0.1)',
       }}
     >
       {/* LD-7 Label */}
@@ -39,6 +41,19 @@ const Speaker: React.FC = () => {
           ml: 2,
         }}
       />
+
+      {/* Recording Light - same width as LD-7, on the right side */}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 'fit-content',
+          ml: 2,
+        }}
+      >
+        <Light light="red" status={isRecording ? 'processing' : 'ready'} />
+      </Box>
     </Box>
   );
 };
