@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useStore } from '../store/useStore';
@@ -24,6 +24,11 @@ const Dashboard: React.FC = () => {
   }, [loadRecordingsFromStorage]);
 
   const formatDuration = (seconds: number): string => {
+    // Validate input
+    if (!isFinite(seconds) || seconds < 0) {
+      return '00:00';
+    }
+    
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const remainingSeconds = seconds % 60;
@@ -56,10 +61,25 @@ const Dashboard: React.FC = () => {
   };
 
   const handleRecordingPress = async (recording: Recording) => {
-    // Ensure full recording data is loaded (including audio file)
-    const fullRecording = await loadRecording(recording.id);
-    if (fullRecording) {
-      navigation.navigate('Playback', { id: fullRecording.id });
+    try {
+      // Ensure full recording data is loaded (including audio file)
+      const fullRecording = await loadRecording(recording.id);
+      if (fullRecording && fullRecording.audioUrl) {
+        navigation.navigate('Playback', { id: fullRecording.id });
+      } else {
+        Alert.alert(
+          'Recording Not Found',
+          'The audio file for this recording could not be found.',
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error) {
+      console.error('Error loading recording:', error);
+      Alert.alert(
+        'Error',
+        'Failed to load recording. Please try again.',
+        [{ text: 'OK' }]
+      );
     }
   };
 

@@ -50,13 +50,23 @@ export const nativeStorageAdapter: StorageFunctions = {
       // Load audio file URIs for native
       const recordingsWithUris = await Promise.all(
         recordings.map(async (rec) => {
-          const audioUri = `${AUDIO_DIR}${rec.id}.m4a`;
-          const fileInfo = await FileSystem.getInfoAsync(audioUri);
-          return {
-            ...rec,
-            audioUrl: fileInfo.exists ? audioUri : undefined,
-            audioBlob: undefined, // Not used in native
-          };
+          try {
+            const audioUri = `${AUDIO_DIR}${rec.id}.m4a`;
+            const fileInfo = await FileSystem.getInfoAsync(audioUri);
+            return {
+              ...rec,
+              audioUrl: fileInfo.exists ? audioUri : undefined,
+              audioBlob: undefined, // Not used in native
+            };
+          } catch (error) {
+            console.warn(`Error checking audio file for recording ${rec.id}:`, error);
+            // Return recording without audio URL if file check fails
+            return {
+              ...rec,
+              audioUrl: undefined,
+              audioBlob: undefined,
+            };
+          }
         })
       );
 

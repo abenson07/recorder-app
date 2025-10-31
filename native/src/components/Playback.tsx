@@ -103,6 +103,10 @@ const Playback: React.FC = () => {
         } else {
           setErrorMessage('Recording not found');
           setShowError(true);
+          // Navigate back after a delay if recording not found
+          setTimeout(() => {
+            navigation.navigate('Dashboard');
+          }, 2000);
         }
       } catch (error) {
         console.error('Error loading recording:', error);

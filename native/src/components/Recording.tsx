@@ -7,6 +7,7 @@ import { useStore } from '../store/useStore';
 import { useRecorder } from '../hooks/useRecorder';
 import { saveRecording } from '../lib/storageAdapter';
 import { Audio } from 'expo-av';
+import * as FileSystem from 'expo-file-system/legacy';
 import { Recording as RecordingType } from '../shared/store/types';
 import Timestamp from './Timestamp';
 import RecordingWaveform from './RecordingWaveform';
@@ -140,6 +141,26 @@ const Recording: React.FC = () => {
 
       if (!audioUri) {
         throw new Error('No recording data available');
+      }
+
+      // Check file size (limit to 25MB for now)
+      try {
+        const fileInfo = await FileSystem.getInfoAsync(audioUri);
+        if (fileInfo.exists && 'size' in fileInfo && fileInfo.size) {
+          const fileSizeMB = fileInfo.size / (1024 * 1024);
+          if (fileSizeMB > 25) {
+            Alert.alert(
+              'Recording Too Large',
+              'Recording is too large. Please keep recordings under 25MB.',
+              [{ text: 'OK', onPress: () => navigation.navigate('Dashboard') }]
+            );
+            resetRecorder();
+            return;
+          }
+        }
+      } catch (sizeError) {
+        console.warn('Could not check file size:', sizeError);
+        // Continue anyway - file size check is not critical
       }
 
       // Calculate duration
