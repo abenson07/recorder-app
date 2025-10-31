@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { Button, Snackbar } from 'react-native-paper';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useStore } from '../store/useStore';
 import { loadRecording } from '../lib/storageAdapter';
 import { usePlayer } from '../hooks/usePlayer';
@@ -245,20 +246,42 @@ const Playback: React.FC = () => {
     );
   }
 
+  const formatTime = (milliseconds: number): string => {
+    if (!isFinite(milliseconds) || milliseconds < 0) {
+      return '00:00:00';
+    }
+    const totalSeconds = Math.floor(milliseconds / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  const currentPlayTime = formatTime(currentPosition || 0);
+  const progressPercentage = finalDurationMs > 0 ? Math.min((currentPosition / finalDurationMs) * 100, 100) : 0;
+  
+  // Extract date part from filename
+  const displayName = recording.fileName.replace('Recording - ', '').split(',')[0] || recording.fileName;
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Top Section: Title and duration */}
-      <View style={styles.topSection}>
-        <Text style={styles.title} numberOfLines={2}>
-          {recording.fileName.replace('Recording - ', '')}
+    <View style={styles.container}>
+      {/* Top Section: Header with play icon + recording name and duration */}
+      <View style={styles.header}>
+        {/* Left: Play icon + Recording name */}
+        <View style={styles.headerLeft}>
+          <MaterialIcons name="play-arrow" size={20} color="#E6E6E6" />
+          <Text style={styles.headerName} numberOfLines={1}>
+            {displayName}
+          </Text>
+        </View>
+
+        {/* Right: Recording duration */}
+        <Text style={styles.headerDuration}>
+          {finalDurationDisplay}
         </Text>
-        <Timestamp milliseconds={finalDurationMs} />
       </View>
 
-      {/* Date */}
-      <Text style={styles.dateText}>{formatRecordedDate(recording.createdAt)}</Text>
-
-      {/* Waveform */}
+      {/* Middle Section: Waveform area (fills remaining space) */}
       <View style={styles.waveformContainer}>
         {peaksLoading ? (
           <ActivityIndicator size="small" color="rgba(255, 255, 255, 0.5)" />
@@ -272,61 +295,38 @@ const Playback: React.FC = () => {
             progressColor="#FFFFFF"
             barWidth={2}
             onClick={(seconds) => {
-              // Seek to clicked position
-              seekTo(seconds * 1000); // Convert to milliseconds
+              seekTo(seconds * 1000);
             }}
           />
         ) : (
-          <>
-            <Text style={styles.placeholderText}>No waveform data</Text>
-            <Text style={styles.playTime}>{playTime}</Text>
-          </>
+          <Text style={styles.placeholderText}>
+            {peaks.length === 0 ? 'No waveform data' : `Duration: ${finalDurationMs}ms`}
+          </Text>
         )}
       </View>
 
-      {/* Bottom Section: Large timestamp */}
+      {/* Bottom Section: Recorded date, timestamp, and progress bar */}
       <View style={styles.bottomSection}>
-        <Timestamp milliseconds={currentPosition} fontSize={48} />
-        <Text style={styles.separator}>/</Text>
-        <Timestamp milliseconds={finalDurationMs} fontSize={48} />
+        {/* Recorded date/time */}
+        <Text style={styles.recordedDate}>
+          Recorded {formatRecordedDate(recording.createdAt)}
+        </Text>
+
+        {/* Large timestamp */}
+        <View style={styles.timestampContainer}>
+          <Timestamp milliseconds={currentPosition} fontSize={48} />
+        </View>
+
+        {/* Playback progress bar */}
+        <View style={styles.progressBarContainer}>
+          {/* Base line (full width) */}
+          <View style={styles.progressBarBase} />
+          {/* Progress line (on top) */}
+          <View style={[styles.progressBarProgress, { width: `${progressPercentage}%` }]} />
+        </View>
       </View>
 
-      {/* Control Buttons */}
-      <View style={styles.controlsSection}>
-        <Button
-          mode="contained"
-          onPress={handlePlayPause}
-          disabled={!recording.audioUrl || playerLoading}
-          style={[styles.controlButton, styles.playButton]}
-          buttonColor="#1976d2"
-          contentStyle={styles.buttonContent}
-          labelStyle={styles.buttonLabel}
-        >
-          {isPlaying ? 'Pause' : 'Play'}
-        </Button>
-        <Button
-          mode="contained"
-          onPress={handleStop}
-          disabled={playerLoading}
-          style={[styles.controlButton, styles.stopButton]}
-          buttonColor="#f44336"
-          contentStyle={styles.buttonContent}
-          labelStyle={styles.buttonLabel}
-        >
-          Stop
-        </Button>
-        <Button
-          mode="outlined"
-          onPress={handleDelete}
-          disabled={playerLoading}
-          style={[styles.controlButton, styles.deleteButton]}
-          textColor="rgba(255, 255, 255, 0.7)"
-          contentStyle={styles.buttonContent}
-          labelStyle={styles.deleteButtonLabel}
-        >
-          Delete
-        </Button>
-      </View>
+      {/* Controls are handled by Controls component at bottom */}
 
       {/* Error Snackbar */}
       <Snackbar
@@ -344,7 +344,7 @@ const Playback: React.FC = () => {
       >
         {playerError || errorMessage}
       </Snackbar>
-    </ScrollView>
+    </View>
   );
 };
 
@@ -352,93 +352,81 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#101010',
-  },
-  content: {
-    padding: 20,
-    paddingBottom: 40,
+    flexDirection: 'column',
   },
   centered: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  topSection: {
+  header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
   },
-  title: {
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     flex: 1,
-    fontSize: 24,
-    color: '#FFFFFF',
-    fontWeight: '300',
-    marginRight: 12,
   },
-  dateText: {
+  headerName: {
+    color: '#E6E6E6',
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.6)',
-    marginBottom: 32,
-    fontWeight: '300',
+    fontWeight: '400',
+    fontFamily: 'System',
+    flex: 1,
+  },
+  headerDuration: {
+    color: '#E6E6E6',
+    fontSize: 14,
+    fontWeight: '400',
+    fontFamily: 'System',
   },
   waveformContainer: {
-    height: 300,
+    flex: 1,
+    minHeight: 0,
+    backgroundColor: '#101010',
     justifyContent: 'center',
     alignItems: 'center',
-    marginVertical: 40,
+    paddingHorizontal: 16,
   },
   placeholderText: {
     color: 'rgba(255, 255, 255, 0.5)',
-    fontSize: 16,
-    marginBottom: 20,
-  },
-  playTime: {
-    fontSize: 24,
-    color: '#FFFFFF',
-    fontWeight: '300',
+    fontSize: 14,
+    fontFamily: 'System',
   },
   bottomSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 32,
+    flexDirection: 'column',
+    paddingHorizontal: 16,
+    paddingVertical: 24,
   },
-  separator: {
-    fontSize: 48,
-    color: 'rgba(255, 255, 255, 0.5)',
-    marginHorizontal: 16,
-    fontWeight: '300',
+  recordedDate: {
+    fontSize: 12,
+    color: 'rgba(230, 230, 230, 0.5)',
+    marginBottom: 8,
+    fontFamily: 'System',
   },
-  controlsSection: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 20,
-    paddingHorizontal: 4,
+  timestampContainer: {
+    marginBottom: 16,
   },
-  controlButton: {
-    flex: 1,
-    borderRadius: 8,
-    marginHorizontal: 4,
+  progressBarContainer: {
+    position: 'relative',
+    width: '100%',
   },
-  playButton: {
-    // backgroundColor handled by buttonColor prop
+  progressBarBase: {
+    width: '100%',
+    height: 1,
+    backgroundColor: 'rgba(230, 230, 230, 0.3)',
   },
-  stopButton: {
-    // backgroundColor handled by buttonColor prop
-  },
-  deleteButton: {
-    borderColor: 'rgba(255, 255, 255, 0.5)',
-  },
-  buttonContent: {
-    paddingVertical: 8,
-  },
-  buttonLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  deleteButtonLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: 'rgba(255, 255, 255, 0.7)',
+  progressBarProgress: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    height: 2,
+    backgroundColor: 'rgba(230, 230, 230, 0.7)',
   },
   errorText: {
     fontSize: 16,

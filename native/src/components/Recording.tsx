@@ -247,42 +247,7 @@ const Recording: React.FC = () => {
         <Timestamp milliseconds={currentPosition} fontSize={48} />
       </View>
 
-      {/* Control Buttons (keeping embedded for now - native pattern) */}
-      <View style={styles.controlsSection}>
-        <Button
-          mode="contained"
-          onPress={handlePauseRecording}
-          disabled={!isRecording}
-          style={[styles.controlButton, styles.pauseButton]}
-          buttonColor="#1976d2"
-          contentStyle={styles.buttonContent}
-          labelStyle={styles.buttonLabel}
-        >
-          {isPaused ? 'Resume' : 'Pause'}
-        </Button>
-        <Button
-          mode="contained"
-          onPress={handleStopRecording}
-          disabled={!isRecording || isLoading}
-          style={[styles.controlButton, styles.stopButton]}
-          buttonColor="#f44336"
-          contentStyle={styles.buttonContent}
-          labelStyle={styles.buttonLabel}
-        >
-          Stop & Save
-        </Button>
-        <Button
-          mode="outlined"
-          onPress={handleDeleteRecording}
-          disabled={!isRecording || isLoading}
-          style={[styles.controlButton, styles.deleteButton]}
-          textColor="rgba(255, 255, 255, 0.7)"
-          contentStyle={styles.buttonContent}
-          labelStyle={styles.deleteButtonLabel}
-        >
-          Delete
-        </Button>
-      </View>
+      {/* Controls are handled by Controls component at bottom */}
 
       {/* Error Snackbar */}
       <Snackbar

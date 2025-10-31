@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { View, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { PaperProvider } from 'react-native-paper';
@@ -8,6 +9,8 @@ import { useStore } from './src/store/useStore';
 import DashboardScreen from './src/components/Dashboard';
 import RecordingScreen from './src/components/Recording';
 import PlaybackScreen from './src/components/Playback';
+import Speaker from './src/components/Speaker';
+import Controls from './src/components/Controls';
 
 const Stack = createNativeStackNavigator();
 
@@ -29,46 +32,85 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <PaperProvider theme={theme}>
-        <NavigationContainer>
-          <Stack.Navigator
-            initialRouteName="Dashboard"
-            screenOptions={{
-              headerStyle: {
-                backgroundColor: '#101010',
-              },
-              headerTintColor: '#fff',
-              headerTitleStyle: {
-                fontWeight: '300',
-              },
+        <View style={styles.appContainer}>
+          <NavigationContainer>
+            <Stack.Navigator
+              initialRouteName="Dashboard"
+              screenOptions={{
+                headerStyle: {
+                  backgroundColor: '#101010',
+                },
+                headerTintColor: '#fff',
+                headerTitleStyle: {
+                  fontWeight: '300',
+                },
+              }}
+            >
+              <Stack.Screen 
+                name="Dashboard" 
+                component={DashboardScreen}
+                options={{ title: 'Recordings', headerShown: false }}
+              />
+              <Stack.Screen 
+                name="Recording" 
+                component={RecordingScreen}
+                options={{ 
+                  title: 'Recording',
+                  headerBackVisible: false,
+                  gestureEnabled: false,
+                  headerShown: false,
+                }}
+              />
+              <Stack.Screen 
+                name="Playback" 
+                component={PlaybackScreen}
+                options={{ 
+                  title: 'Playback',
+                  headerShown: false,
+                }}
+              />
+            </Stack.Navigator>
+          </NavigationContainer>
+          
+          {/* Speaker Section - 40px fixed height */}
+          <View style={styles.speakerContainer}>
+            <Speaker />
+          </View>
+
+          {/* Controls Section - 150px fixed height */}
+          <Controls
+            onPauseResume={() => {
+              // Will be handled via navigation params or context
             }}
-          >
-            <Stack.Screen 
-              name="Dashboard" 
-              component={DashboardScreen}
-              options={{ title: 'Recordings' }}
-            />
-            <Stack.Screen 
-              name="Recording" 
-              component={RecordingScreen}
-              options={{ 
-                title: 'Recording',
-                headerBackVisible: false,
-                gestureEnabled: false,
-              }}
-            />
-            <Stack.Screen 
-              name="Playback" 
-              component={PlaybackScreen}
-              options={{ 
-                title: 'Playback',
-              }}
-            />
-          </Stack.Navigator>
+            onStop={() => {
+              // Will be handled via navigation params or context
+            }}
+            onPlayPause={() => {
+              // Will be handled via navigation params or context
+            }}
+          />
+          
           <StatusBar style="light" />
-        </NavigationContainer>
+        </View>
       </PaperProvider>
     </SafeAreaProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  appContainer: {
+    flex: 1,
+    backgroundColor: '#D1D1D1',
+    padding: 8,
+    gap: 16,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  speakerContainer: {
+    height: 40,
+    backgroundColor: '#D1D1D1',
+    borderRadius: 1,
+  },
+});
 
 // Removed unused styles - no longer needed since we're using actual components
