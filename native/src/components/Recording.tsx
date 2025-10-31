@@ -223,10 +223,13 @@ const Recording: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Top Section: Title and duration */}
-      <View style={styles.topSection}>
-        <Text style={styles.title}>Recording</Text>
-        <Timestamp milliseconds={currentPosition} />
+      {/* Top Section: Header with red dot + "New recording" and "32kbps" */}
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <View style={styles.redDot} />
+          <Text style={styles.headerText}>New recording</Text>
+        </View>
+        <Text style={styles.headerRight}>32kbps</Text>
       </View>
 
       {/* Middle Section: Waveform */}
@@ -244,7 +247,7 @@ const Recording: React.FC = () => {
         <Timestamp milliseconds={currentPosition} fontSize={48} />
       </View>
 
-      {/* Control Buttons */}
+      {/* Control Buttons (keeping embedded for now - native pattern) */}
       <View style={styles.controlsSection}>
         <Button
           mode="contained"
@@ -301,28 +304,49 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#101010',
-    padding: 20,
   },
-  topSection: {
+  header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
   },
-  title: {
-    fontSize: 24,
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  redDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#f44336',
+  },
+  headerText: {
+    fontSize: 14,
     color: '#FFFFFF',
-    fontWeight: '300',
+    fontWeight: '400',
+    fontFamily: 'System',
+  },
+  headerRight: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    fontWeight: '400',
+    fontFamily: 'System',
   },
   waveformContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginVertical: 40,
+    backgroundColor: '#101010',
+    overflow: 'hidden',
   },
   bottomSection: {
-    alignItems: 'center',
-    marginBottom: 20,
+    justifyContent: 'flex-start',
+    alignItems: 'flex-start',
+    paddingHorizontal: 16,
+    paddingVertical: 24,
   },
   controlsSection: {
     flexDirection: 'row',
