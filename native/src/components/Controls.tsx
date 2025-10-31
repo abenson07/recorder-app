@@ -30,15 +30,9 @@ const Controls: React.FC<ControlsProps> = () => {
     onPlaybackStop 
   } = useStore();
   
-  // Only use navigation for navigation actions (navigate)
-  // Try to get navigation, but don't fail if it's not available
-  let navigation: NavigationProp | null = null;
-  try {
-    navigation = useNavigation<NavigationProp>();
-  } catch (error) {
-    // Navigation not available, but we can still render Controls without navigate functionality
-    console.warn('Navigation not available in Controls:', error);
-  }
+  // useNavigation() works here since we're inside NavigationContainer
+  // (the issue was only with useNavigationState() and useRoute() which need a navigator)
+  const navigation = useNavigation<NavigationProp>();
   const [wifiLightState, setWifiLightState] = useState<{ light: 'red' | 'green'; status: 'processing' | 'ready' }>({
     light: 'green',
     status: 'ready',
@@ -82,9 +76,7 @@ const Controls: React.FC<ControlsProps> = () => {
   const isPlayback = currentRoute === 'Playback';
 
   const handleRecordClick = () => {
-    if (navigation) {
-      navigation.navigate('Recording');
-    }
+    navigation.navigate('Recording');
   };
 
   const handleStopClick = () => {
@@ -92,7 +84,7 @@ const Controls: React.FC<ControlsProps> = () => {
       // Callbacks handle navigation
       if (onRecordingStop) onRecordingStop();
       if (onPlaybackStop) onPlaybackStop();
-    } else if (navigation) {
+    } else {
       navigation.navigate('Dashboard');
     }
   };
