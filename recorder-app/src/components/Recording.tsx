@@ -25,12 +25,14 @@ const Recording: React.FC = () => {
     isRecording,
     isPaused,
     recordTime,
+    currentPosition,
     error,
     startRecorder,
     stopRecorder,
     pauseRecorder,
     resumeRecorder,
     resetRecorder,
+    getFinalDuration,
     isLoading,
   } = useRecorder(handleRecordBack);
 
@@ -105,8 +107,77 @@ const Recording: React.FC = () => {
     }
   };
 
+  /**
+   * Calculate duration from audio blob (primary method - most reliable)
+   */
+  const getDurationFromBlob = (blob: Blob, audioUrl: string): Promise<number> => {
+    return new Promise((resolve) => {
+      const audio = new Audio(audioUrl);
+      let resolved = false;
+      
+      const cleanup = () => {
+        audio.removeEventListener('loadedmetadata', handleMetadata);
+        audio.removeEventListener('error', handleError);
+        // Don't revoke URL - it's needed for the recording
+        // The audio element will be garbage collected
+      };
+      
+      const handleMetadata = () => {
+        if (resolved) return;
+        resolved = true;
+        const duration = audio.duration;
+        console.log('🎵 Blob metadata loaded:', {
+          rawDuration: duration,
+          isFinite: isFinite(duration),
+          isValid: isFinite(duration) && duration > 0,
+          durationSeconds: isFinite(duration) && duration > 0 ? Math.floor(duration) : 0,
+        });
+        // Check if duration is valid (not NaN, Infinity, or <= 0)
+        if (isFinite(duration) && duration > 0) {
+          cleanup();
+          resolve(Math.floor(duration));
+        } else {
+          cleanup();
+          resolve(0);
+        }
+      };
+      
+      const handleError = (e: Event) => {
+        if (resolved) return;
+        resolved = true;
+        console.error('❌ Error loading audio blob metadata:', e);
+        cleanup();
+        resolve(0);
+      };
+      
+      audio.addEventListener('loadedmetadata', handleMetadata);
+      audio.addEventListener('error', handleError);
+      
+      // Load the audio to trigger metadata loading
+      audio.load();
+      
+      // Timeout fallback after 5 seconds (increased from 2 for longer recordings)
+      setTimeout(() => {
+        if (!resolved) {
+          resolved = true;
+          console.warn('⏱️ Timeout waiting for audio metadata');
+          cleanup();
+          resolve(0);
+        }
+      }, 5000);
+    });
+  };
+
   const handleStopRecording = async () => {
     try {
+      // Get final duration from recorder hook BEFORE stopping (uses refs, most accurate)
+      const recordedDurationMs = getFinalDuration();
+      console.log('🔴 Stopping recording - initial duration:', {
+        durationMs: recordedDurationMs,
+        durationSeconds: Math.floor(recordedDurationMs / 1000),
+        currentPositionState: currentPosition, // For comparison
+      });
+      
       const audioUrl = await stopRecorder();
       
       if (!audioUrl) {
@@ -126,8 +197,25 @@ const Recording: React.FC = () => {
         return;
       }
 
-      // Calculate duration in seconds
-      const duration = recordBackData ? Math.floor(recordBackData.currentPosition / 1000) : 0;
+      // Primary method: Use duration from recorder hook (most reliable for WebM)
+      let duration = Math.floor(recordedDurationMs / 1000);
+      
+      // Fallback: Try blob duration if recorder duration is 0 or invalid
+      if (duration === 0 || !isFinite(duration)) {
+        console.log('⚠️ Recorder duration is 0 or invalid, attempting blob fallback...');
+        const blobDuration = await getDurationFromBlob(audioBlob, audioUrl);
+        console.log('🔵 Blob fallback duration:', blobDuration);
+        if (blobDuration > 0 && isFinite(blobDuration)) {
+          duration = blobDuration;
+        }
+      }
+      
+      console.log('🔴 Final duration calculation:', {
+        recorderDurationMs: recordedDurationMs,
+        recorderDurationSeconds: Math.floor(recordedDurationMs / 1000),
+        finalDurationSeconds: duration,
+        blobSizeMB: (audioBlob.size / (1024 * 1024)).toFixed(2),
+      });
 
       // Create recording object
       const title = `Recording - ${new Date().toLocaleString()}`;
@@ -140,6 +228,16 @@ const Recording: React.FC = () => {
         audioBlob,
         audioUrl,
       };
+      
+      console.log('💾 Saving recording with duration:', {
+        id: newRecording.id,
+        fileName: newRecording.fileName,
+        duration: newRecording.duration,
+        durationSeconds: newRecording.duration,
+        durationMs: newRecording.duration * 1000,
+        blobSize: audioBlob.size,
+        blobSizeMB: (audioBlob.size / (1024 * 1024)).toFixed(2),
+      });
 
       // Save to local storage
       await saveRecording(newRecording);

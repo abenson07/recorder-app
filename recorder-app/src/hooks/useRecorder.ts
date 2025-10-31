@@ -14,6 +14,7 @@ export interface RecorderControls {
   pauseRecorder: () => void;
   resumeRecorder: () => void;
   resetRecorder: () => void;
+  getFinalDuration: () => number; // Get final duration in milliseconds before stopping
   isLoading: boolean;
 }
 
@@ -208,6 +209,15 @@ export const useRecorder = (
     }
   }, [isRecording, isPaused]);
 
+  const getFinalDuration = useCallback((): number => {
+    // Calculate final duration from refs (most accurate, not affected by React state batching)
+    if (startTimeRef.current > 0) {
+      const elapsed = Date.now() - startTimeRef.current - totalPausedTimeRef.current;
+      return Math.max(0, elapsed); // Ensure non-negative
+    }
+    return 0;
+  }, []);
+
   const resetRecorder = useCallback(() => {
     // Stop recording if active
     if (mediaRecorderRef.current && isRecording) {
@@ -256,6 +266,7 @@ export const useRecorder = (
     pauseRecorder,
     resumeRecorder,
     resetRecorder,
+    getFinalDuration,
     isLoading,
   };
 };

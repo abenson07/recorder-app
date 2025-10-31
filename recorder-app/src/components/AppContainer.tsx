@@ -58,7 +58,6 @@ const AppContainer: React.FC<AppContainerProps> = ({ children }) => {
             flexDirection: 'column',
             minHeight: 0, // Important for flex children
             backgroundColor: '#191919',
-            border: '8px solid #000',
             borderRadius: 1,
           }}
         >

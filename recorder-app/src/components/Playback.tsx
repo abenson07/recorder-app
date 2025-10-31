@@ -20,6 +20,7 @@ const Playback: React.FC = () => {
   const { deleteRecording, setIsPlaying } = useStore();
   const [recording, setRecording] = useState<Recording | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [durationUpdated, setDurationUpdated] = useState(false); // Track if we've updated duration
 
   const handlePlayBack = ({ currentPosition, duration }: { currentPosition: number; duration: number }) => {
     // This is called during playback to update UI
@@ -28,6 +29,11 @@ const Playback: React.FC = () => {
   const handlePlaybackEnd = () => {
     // Playback finished
   };
+
+  // Calculate maxDurationMs for player (will be undefined until recording loads)
+  const maxDurationMsForPlayer = recording && recording.duration && recording.duration > 0 && isFinite(recording.duration) 
+    ? recording.duration * 1000 
+    : undefined;
 
   const {
     isPlaying,
@@ -43,7 +49,7 @@ const Playback: React.FC = () => {
     seekTo,
     setPlaybackRate,
     isLoading: playerLoading,
-  } = usePlayer(handlePlayBack, handlePlaybackEnd);
+  } = usePlayer(handlePlayBack, handlePlaybackEnd, maxDurationMsForPlayer);
 
   // Load recording on mount
   useEffect(() => {
@@ -51,9 +57,19 @@ const Playback: React.FC = () => {
       if (!id) return;
       
       setIsLoading(true);
+      setDurationUpdated(false); // Reset update flag when loading new recording
       try {
         const loaded = await loadRecording(id);
         if (loaded) {
+          console.log('📹 Recording loaded:', {
+            id: loaded.id,
+            fileName: loaded.fileName,
+            storedDuration: loaded.duration,
+            storedDurationSeconds: loaded.duration,
+            storedDurationMs: loaded.duration * 1000,
+            audioUrl: loaded.audioUrl ? 'present' : 'missing',
+            createdAt: loaded.createdAt,
+          });
           setRecording(loaded);
           
           // If we have an audioUrl, start loading it
@@ -79,6 +95,10 @@ const Playback: React.FC = () => {
   }, [recording, isPlaying, playerLoading]);
 
   const formatTime = (milliseconds: number): string => {
+    // Validate input - handle NaN, Infinity, or negative values
+    if (!isFinite(milliseconds) || milliseconds < 0) {
+      return '00:00:00';
+    }
     const totalSeconds = Math.floor(milliseconds / 1000);
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -154,6 +174,34 @@ const Playback: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPlaying, recording]);
 
+  // Monitor playback progress to update stored duration if it was missing
+  useEffect(() => {
+    // Only update once, and only if duration is substantial (> 1 second)
+    if (!durationUpdated && isPlaying && recording && recording.duration === 0 && durationMs > 1000) {
+      // If we detect a valid duration during playback for a recording with 0 duration,
+      // update the recording duration (only if duration is substantial, > 1 second to avoid false positives)
+      console.log('🔍 Detected playback duration for recording with missing duration:', {
+        recordingId: recording.id,
+        detectedDurationMs: durationMs,
+        detectedDurationSeconds: Math.floor(durationMs / 1000),
+      });
+      // Update the recording duration in storage
+      const { updateRecording } = useStore.getState();
+      updateRecording(recording.id, {
+        duration: Math.floor(durationMs / 1000), // Convert to seconds
+      });
+      // Update local state to reflect the change
+      setRecording((prev) => {
+        if (prev) {
+          return { ...prev, duration: Math.floor(durationMs / 1000) };
+        }
+        return prev;
+      });
+      setDurationUpdated(true); // Mark as updated to prevent repeated updates
+      console.log('✅ Updated recording duration in storage');
+    }
+  }, [isPlaying, recording, durationMs, durationUpdated]);
+
   if (isLoading) {
     return (
       <Box sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', backgroundColor: '#101010', alignItems: 'center', justifyContent: 'center' }}>
@@ -172,9 +220,37 @@ const Playback: React.FC = () => {
     );
   }
 
-  const recordingDuration = formatTime((durationMs || recording.duration * 1000) || 0);
+  // Safely calculate durations with fallbacks
+  // Priority: stored recording.duration > player durationMs
+  // Only use player durationMs if it's substantial (> 2 seconds) and stored duration is missing
+  const storedDurationMs = recording?.duration > 0 && isFinite(recording.duration) 
+    ? recording.duration * 1000 
+    : 0;
+  
+  const durationMsValue = storedDurationMs > 0 
+    ? storedDurationMs  // Always prefer stored duration when available
+    : (durationMs > 2000 && isFinite(durationMs) 
+        ? durationMs  // Only use player duration if substantial (> 2 seconds) and stored is missing
+        : 0);
+  
+  // Debug logging for duration calculation
+  if (recording) {
+    console.log('⏱️ Duration calculation:', {
+      fromPlayer: durationMs,
+      fromRecording: recording.duration,
+      recordingDurationSeconds: recording.duration,
+      recordingDurationMs: storedDurationMs,
+      finalDurationMs: durationMsValue,
+      finalDurationFormatted: formatTime(durationMsValue),
+      currentPosition,
+      maxDuration: durationMsValue > 0 ? durationMsValue : 100,
+      usingStored: storedDurationMs > 0,
+    });
+  }
+  
+  const recordingDuration = formatTime(durationMsValue);
   const currentPlayTime = formatTime(currentPosition || 0);
-  const maxDuration = isFinite(durationMs) && durationMs > 0 ? durationMs : (isFinite(recording.duration) && recording.duration > 0 ? recording.duration * 1000 : 100);
+  const maxDuration = durationMsValue > 0 ? durationMsValue : 100;
   const progressPercentage = maxDuration > 0 ? Math.min((currentPosition / maxDuration) * 100, 100) : 0;
 
   return (
