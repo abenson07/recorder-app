@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { Button, Snackbar } from 'react-native-paper';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
@@ -180,25 +180,43 @@ const Playback: React.FC = () => {
     return `${month} ${day}, ${year} at ${displayHours}:${displayMinutes}${ampm}`;
   };
 
+  // Use ref to track latest recording so callback always has fresh data
+  const recordingRef = useRef<Recording | null>(null);
+  useEffect(() => {
+    recordingRef.current = recording;
+  }, [recording]);
+
+  const isPlayingRef = useRef(isPlaying);
+  useEffect(() => {
+    isPlayingRef.current = isPlaying;
+  }, [isPlaying]);
+
   const handlePlayPause = useCallback(async () => {
-    console.log('▶️ handlePlayPause called', { isPlaying, hasAudioUrl: !!recording?.audioUrl });
-    if (!recording?.audioUrl) {
-      console.warn('⚠️ No audio URL available');
+    const currentRecording = recordingRef.current;
+    const currentIsPlaying = isPlayingRef.current;
+    console.log('▶️ handlePlayPause called', { 
+      isPlaying: currentIsPlaying, 
+      hasAudioUrl: !!currentRecording?.audioUrl,
+      recordingId: currentRecording?.id,
+    });
+    
+    if (!currentRecording?.audioUrl) {
+      console.warn('⚠️ No audio URL available', { recording: currentRecording });
       return;
     }
 
-    if (isPlaying) {
+    if (currentIsPlaying) {
       pausePlayer();
     } else {
       try {
-        await startPlayer(recording.audioUrl);
+        await startPlayer(currentRecording.audioUrl);
       } catch (error) {
         console.error('Failed to start playback:', error);
         setErrorMessage('Failed to start playback. Please try again.');
         setShowError(true);
       }
     }
-  }, [recording?.audioUrl, isPlaying, pausePlayer, startPlayer]);
+  }, [pausePlayer, startPlayer, setErrorMessage, setShowError]);
 
   const handleStop = async () => {
     await stopPlayer();

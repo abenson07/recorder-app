@@ -167,10 +167,14 @@ const Controls: React.FC<ControlsProps> = () => {
           {/* Position 3: Stop/Save Button */}
           <TouchableOpacity
             style={[styles.button, styles.topRightButton]}
-            onPress={() => {
+            onPress={async () => {
               console.log('🔘 Recording stop button pressed', { hasCallback: !!onRecordingStop });
               if (onRecordingStop) {
-                onRecordingStop();
+                try {
+                  await onRecordingStop();
+                } catch (error) {
+                  console.error('❌ Error in onRecordingStop callback:', error);
+                }
               } else {
                 console.warn('⚠️ onRecordingStop callback not available, using handleStopClick');
                 handleStopClick();

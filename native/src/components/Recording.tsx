@@ -123,13 +123,19 @@ const Recording: React.FC = () => {
   };
 
   const handlePauseRecording = useCallback(() => {
-    console.log('⏸️ handlePauseRecording called', { isPaused, isRecording });
-    if (isPaused) {
+    // Use refs to get fresh state instead of closure
+    // Get latest values from the store directly
+    const currentStore = useStore.getState();
+    const freshIsRecording = currentStore.isRecording;
+    const freshIsPaused = currentStore.isPaused;
+    console.log('⏸️ handlePauseRecording called', { isPaused: freshIsPaused, isRecording: freshIsRecording });
+    
+    if (freshIsPaused) {
       resumeRecorder();
     } else {
       pauseRecorder();
     }
-  }, [isPaused, isRecording, resumeRecorder, pauseRecorder]);
+  }, [resumeRecorder, pauseRecorder]);
 
   /**
    * Get duration from audio file (for native, we'll get it from the recording URI)
@@ -154,7 +160,13 @@ const Recording: React.FC = () => {
 
   const handleStopRecording = useCallback(async () => {
     try {
-      if (!isRecording) {
+      // Get fresh state from store instead of closure
+      const storeState = useStore.getState();
+      const freshIsRecording = storeState.isRecording;
+      console.log('🔴 handleStopRecording called', { isRecording: freshIsRecording });
+      
+      if (!freshIsRecording) {
+        console.warn('⚠️ Stop called but not recording, returning early');
         return;
       }
 
@@ -218,7 +230,7 @@ const Recording: React.FC = () => {
       setShowError(true);
       resetRecorder();
     }
-  }, [isRecording, getFinalDuration, stopRecorder, resetRecorder, addRecording, navigation, saveRecording]);
+  }, [getFinalDuration, stopRecorder, resetRecorder, addRecording, navigation, saveRecording]);
 
   const handleDeleteRecording = async () => {
     Alert.alert(
