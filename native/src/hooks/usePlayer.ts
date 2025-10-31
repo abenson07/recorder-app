@@ -203,10 +203,18 @@ export const usePlayer = (
         setDuration(formatPlayTime(status.durationMillis));
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to start playback';
+      let errorMessage = err instanceof Error ? err.message : 'Failed to start playback';
+      
+      // Provide more user-friendly error messages
+      if (errorMessage.includes('file') || errorMessage.includes('not found')) {
+        errorMessage = 'Audio file not found. The recording may have been deleted.';
+      } else if (errorMessage.includes('format') || errorMessage.includes('codec')) {
+        errorMessage = 'Audio format not supported.';
+      }
+      
       setError(errorMessage);
       console.error('Error starting player:', err);
-      throw err;
+      throw new Error(errorMessage);
     } finally {
       setIsLoading(false);
     }

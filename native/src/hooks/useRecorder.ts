@@ -112,11 +112,20 @@ export const useRecorder = (
       return null; // Return null for success (URI available after stop)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to start recording';
-      setError(errorMessage);
+      
+      // Provide more user-friendly error messages for common issues
+      let userFriendlyMessage = errorMessage;
+      if (errorMessage.includes('permission') || errorMessage.includes('Permission')) {
+        userFriendlyMessage = 'Microphone permission is required to record audio. Please enable it in your device settings.';
+      } else if (errorMessage.includes('unavailable') || errorMessage.includes('busy')) {
+        userFriendlyMessage = 'Microphone is unavailable. Another app may be using it.';
+      }
+      
+      setError(userFriendlyMessage);
       setIsLoading(false);
       setIsRecording(false);
       console.error('Error starting recording:', err);
-      throw err;
+      throw new Error(userFriendlyMessage);
     }
   }, []);
 
