@@ -74,7 +74,20 @@ const Recording: React.FC = () => {
 
   // Auto-start recording on mount
   useEffect(() => {
-    handleStartRecording();
+    const start = async () => {
+      try {
+        await handleStartRecording();
+      } catch (err) {
+        // Error already handled by useRecorder hook and error state
+        // If permission denied, navigate back after showing error
+        if (err instanceof Error && err.message.includes('permission')) {
+          setTimeout(() => {
+            navigation.navigate('Dashboard');
+          }, 3000);
+        }
+      }
+    };
+    start();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only on mount
 
