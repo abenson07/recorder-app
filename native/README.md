@@ -107,8 +107,6 @@ Permissions are automatically requested when needed via Expo AV.
 
 1. **Waveform Peaks**: Currently using synthetic peaks. Real audio processing requires additional native modules or libraries.
 
-2. **File Size Limit**: Recordings are limited to 25MB to prevent storage issues.
-
 ## Troubleshooting
 
 ### Clear Cache
