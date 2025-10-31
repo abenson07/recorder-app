@@ -32,10 +32,10 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <PaperProvider theme={theme}>
-        <View style={styles.appContainer}>
-          {/* Screen Section - Main content area (matches web #191919 background) */}
-          <View style={styles.screenContainer}>
-            <NavigationContainer>
+        <NavigationContainer>
+          <View style={styles.appContainer}>
+            {/* Screen Section - Main content area (matches web #191919 background) */}
+            <View style={styles.screenContainer}>
               <Stack.Navigator
                 initialRouteName="Dashboard"
                 screenOptions={{
@@ -72,19 +72,18 @@ export default function App() {
                   }}
                 />
               </Stack.Navigator>
-            </NavigationContainer>
-          </View>
+            </View>
 
-          {/* Speaker Section - 40px fixed height */}
-          <View style={styles.speakerContainer}>
-            <Speaker />
-          </View>
+            {/* Speaker Section - 40px fixed height */}
+            <View style={styles.speakerContainer}>
+              <Speaker />
+            </View>
 
-          {/* Controls Section - 150px fixed height */}
-          <Controls />
-          
+            {/* Controls Section - 150px fixed height */}
+            <Controls />
+          </View>
           <StatusBar style="light" />
-        </View>
+        </NavigationContainer>
       </PaperProvider>
     </SafeAreaProvider>
   );
