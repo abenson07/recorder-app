@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, TouchableOpacity, StyleSheet, Text } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useNavigation, useNavigationState } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useStore } from '../store/useStore';
 import Dial from './Dial';
@@ -18,14 +18,27 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 interface ControlsProps {}
 
 const Controls: React.FC<ControlsProps> = () => {
-  const navigation = useNavigation<NavigationProp>();
-  // Get current route name from navigation state instead of useRoute()
-  const routeName = useNavigationState((state) => {
-    if (!state) return 'Dashboard';
-    const route = state.routes[state.index];
-    return route.name;
-  });
-  const { isRecording, isPaused, isPlaying, onRecordingPauseResume, onRecordingStop, onPlaybackPlayPause, onPlaybackStop } = useStore();
+  // Get current route from store instead of navigation hooks
+  const { 
+    isRecording, 
+    isPaused, 
+    isPlaying, 
+    currentRoute,
+    onRecordingPauseResume, 
+    onRecordingStop, 
+    onPlaybackPlayPause, 
+    onPlaybackStop 
+  } = useStore();
+  
+  // Only use navigation for navigation actions (navigate)
+  // Try to get navigation, but don't fail if it's not available
+  let navigation: NavigationProp | null = null;
+  try {
+    navigation = useNavigation<NavigationProp>();
+  } catch (error) {
+    // Navigation not available, but we can still render Controls without navigate functionality
+    console.warn('Navigation not available in Controls:', error);
+  }
   const [wifiLightState, setWifiLightState] = useState<{ light: 'red' | 'green'; status: 'processing' | 'ready' }>({
     light: 'green',
     status: 'ready',
@@ -64,18 +77,22 @@ const Controls: React.FC<ControlsProps> = () => {
     };
   }, [isRecording]);
 
-  const isDashboard = routeName === 'Dashboard';
-  const isRecordingPage = routeName === 'Recording';
-  const isPlayback = routeName === 'Playback';
+  const isDashboard = currentRoute === 'Dashboard';
+  const isRecordingPage = currentRoute === 'Recording';
+  const isPlayback = currentRoute === 'Playback';
 
   const handleRecordClick = () => {
-    navigation.navigate('Recording');
+    if (navigation) {
+      navigation.navigate('Recording');
+    }
   };
 
   const handleStopClick = () => {
-    if (onStop) {
-      onStop();
-    } else {
+    if (onRecordingStop || onPlaybackStop) {
+      // Callbacks handle navigation
+      if (onRecordingStop) onRecordingStop();
+      if (onPlaybackStop) onPlaybackStop();
+    } else if (navigation) {
       navigation.navigate('Dashboard');
     }
   };

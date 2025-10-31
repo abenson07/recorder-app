@@ -1,9 +1,9 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { PaperProvider } from 'react-native-paper';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, NavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useStore } from './src/store/useStore';
 import DashboardScreen from './src/components/Dashboard';
@@ -12,15 +12,34 @@ import PlaybackScreen from './src/components/Playback';
 import Speaker from './src/components/Speaker';
 import Controls from './src/components/Controls';
 
+type RootStackParamList = {
+  Dashboard: undefined;
+  Recording: undefined;
+  Playback: { id: string };
+};
+
 const Stack = createNativeStackNavigator();
 
 export default function App() {
   const loadRecordings = useStore((state) => state.loadRecordingsFromStorage);
+  const setCurrentRoute = useStore((state) => state.setCurrentRoute);
+  const navigationRef = useRef<NavigationContainerRef<RootStackParamList>>(null);
 
   // Load recordings on app start
   useEffect(() => {
     loadRecordings();
   }, [loadRecordings]);
+
+  // Handle navigation state changes to update current route in store
+  const handleStateChange = () => {
+    const navigationState = navigationRef.current?.getState();
+    if (navigationState) {
+      const route = navigationState.routes[navigationState.index];
+      if (route && route.name) {
+        setCurrentRoute(route.name);
+      }
+    }
+  };
 
   const theme = {
     colors: {
@@ -32,7 +51,14 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <PaperProvider theme={theme}>
-        <NavigationContainer>
+        <NavigationContainer
+          ref={navigationRef}
+          onStateChange={handleStateChange}
+          onReady={() => {
+            // Update route on initial mount
+            handleStateChange();
+          }}
+        >
           <View style={styles.appContainer}>
             {/* Screen Section - Main content area (matches web #191919 background) */}
             <View style={styles.screenContainer}>

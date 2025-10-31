@@ -11,6 +11,7 @@ interface AppState {
   isPaused: boolean;
   isPlaying: boolean;
   isLoading: boolean;
+  currentRoute: string | null;
   // Callbacks for Controls component to trigger actions in Recording/Playback
   onRecordingPauseResume?: () => void;
   onRecordingStop?: () => void;
@@ -23,6 +24,7 @@ interface AppState {
   setIsRecording: (isRecording: boolean) => void;
   setIsPaused: (isPaused: boolean) => void;
   setIsPlaying: (isPlaying: boolean) => void;
+  setCurrentRoute: (route: string) => void;
   setRecordingCallbacks: (callbacks: { onPauseResume?: () => void; onStop?: () => void }) => void;
   setPlaybackCallbacks: (callbacks: { onPlayPause?: () => void; onStop?: () => void }) => void;
   clearCallbacks: () => void;
@@ -51,6 +53,7 @@ export const useStore = create<AppState>((set, get) => ({
   isPaused: false,
   isPlaying: false,
   isLoading: false,
+  currentRoute: 'Dashboard',
   onRecordingPauseResume: undefined,
   onRecordingStop: undefined,
   onPlaybackPlayPause: undefined,
@@ -111,6 +114,9 @@ export const useStore = create<AppState>((set, get) => ({
   
   setIsPlaying: (isPlaying) =>
     set({ isPlaying }),
+  
+  setCurrentRoute: (route) =>
+    set({ currentRoute: route }),
   
   setRecordingCallbacks: (callbacks) =>
     set({
