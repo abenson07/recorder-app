@@ -17,7 +17,11 @@ const theme = createTheme({
     },
   },
   typography: {
-    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+    fontFamily: '"Ubuntu Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Cantarell", sans-serif',
+    fontWeightLight: 300,
+    fontWeightRegular: 300,
+    fontWeightMedium: 300,
+    fontWeightBold: 300,
   },
 });
 

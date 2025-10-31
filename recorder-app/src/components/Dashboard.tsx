@@ -1,81 +1,126 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Box,
   Typography,
   List,
-  ListItem,
+  ListItemButton,
   ListItemText,
-  ListItemSecondaryAction,
-  IconButton,
-  Fab,
-  Chip,
   Fade,
   Slide,
+  CircularProgress,
 } from '@mui/material';
 import {
-  PlayArrow,
-  Delete,
-  Add,
   AccessTime,
   Mic,
 } from '@mui/icons-material';
 import { useStore } from '../store/useStore';
 import { useNavigate } from 'react-router-dom';
+import { loadRecording } from '../lib/localStorage';
 
 const Dashboard: React.FC = () => {
-  const { recordings, deleteRecording } = useStore();
+  const { recordings, isLoading, loadRecordingsFromStorage } = useStore();
   const navigate = useNavigate();
+
+  // Ensure recordings are loaded on mount
+  useEffect(() => {
+    loadRecordingsFromStorage();
+  }, [loadRecordingsFromStorage]);
 
   const formatDuration = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'done':
-        return 'success';
-      case 'transcribing':
-        return 'warning';
-      case 'recording':
-        return 'info';
-      case 'error':
-        return 'error';
-      default:
-        return 'default';
+  const formatRelativeTime = (dateString: string): string => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diffInSeconds < 60) {
+      return 'just now';
+    } else if (diffInSeconds < 3600) {
+      const minutes = Math.floor(diffInSeconds / 60);
+      return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'} ago`;
+    } else if (diffInSeconds < 86400) {
+      const hours = Math.floor(diffInSeconds / 3600);
+      return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
+    } else if (diffInSeconds < 604800) {
+      const days = Math.floor(diffInSeconds / 86400);
+      return `${days} ${days === 1 ? 'day' : 'days'} ago`;
+    } else {
+      return date.toLocaleDateString();
     }
   };
 
-  const handlePlayRecording = (recordingId: string) => {
-    navigate(`/playback/${recordingId}`);
-  };
 
-  const handleDeleteRecording = (recordingId: string) => {
-    if (window.confirm('Are you sure you want to delete this recording?')) {
-      deleteRecording(recordingId);
+  const handleRecordingClick = async (recordingId: string) => {
+    // Load the full recording with blob before navigating
+    const fullRecording = await loadRecording(recordingId);
+    if (fullRecording) {
+      navigate(`/playback/${recordingId}`);
+    } else {
+      alert('Recording not found or could not be loaded.');
     }
-  };
-
-  const handleStartRecording = () => {
-    navigate('/recording');
   };
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <Box
+      sx={{
+        height: '100%',
+        width: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        backgroundColor: '#101010',
+        color: 'white',
+      }}
+    >
       {/* Header */}
-      <Box sx={{ p: 2, borderBottom: '1px solid #e0e0e0' }}>
-        <Typography variant="h5" component="h1" gutterBottom>
-          Voice Recordings
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          p: 2,
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+        }}
+      >
+        <Typography
+          variant="h6"
+          component="h1"
+          sx={{
+            color: 'rgba(255, 255, 255, 0.7)',
+            fontWeight: 300,
+            fontSize: '1rem',
+          }}
+        >
+          My recordings
         </Typography>
-        <Typography variant="body2" color="text.secondary">
-          {recordings.length} recordings
+        <Typography
+          variant="body2"
+          sx={{
+            color: 'rgba(255, 255, 255, 0.7)',
+            fontSize: '0.875rem',
+          }}
+        >
+          {recordings.length}
         </Typography>
       </Box>
 
       {/* Recordings List */}
       <Box sx={{ flex: 1, overflow: 'auto' }}>
-        {recordings.length === 0 ? (
+        {isLoading ? (
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              height: '100%',
+            }}
+          >
+            <CircularProgress sx={{ color: 'rgba(255, 255, 255, 0.5)' }} />
+          </Box>
+        ) : recordings.length === 0 ? (
           <Fade in timeout={800}>
             <Box
               sx={{
@@ -83,16 +128,20 @@ const Dashboard: React.FC = () => {
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                height: '300px',
+                height: '100%',
                 textAlign: 'center',
                 p: 3,
               }}
             >
-              <Mic sx={{ fontSize: 64, color: 'text.secondary', mb: 2, opacity: 0.5 }} />
-              <Typography variant="h6" color="text.secondary" gutterBottom>
+              <Mic sx={{ fontSize: 64, color: 'rgba(255, 255, 255, 0.3)', mb: 2 }} />
+              <Typography
+                variant="h6"
+                sx={{ color: 'rgba(255, 255, 255, 0.5)', mb: 1 }}
+                gutterBottom
+              >
                 No recordings yet
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.4)' }}>
                 Tap the record button to start your first recording
               </Typography>
             </Box>
@@ -106,86 +155,75 @@ const Dashboard: React.FC = () => {
                 in
                 timeout={300 + index * 100}
               >
-                <ListItem
+                <ListItemButton
+                  onClick={() => handleRecordingClick(recording.id)}
+                  disabled={recording.status === 'transcribing'}
                   sx={{
-                    borderBottom: '1px solid #f0f0f0',
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+                    px: 2,
+                    py: 1.5,
                     transition: 'all 0.2s ease-in-out',
                     '&:hover': {
-                      backgroundColor: '#f8f8f8',
-                      transform: 'translateX(4px)',
+                      backgroundColor: recording.status === 'transcribing' ? 'transparent' : 'rgba(255, 255, 255, 0.05)',
+                    },
+                    '&.Mui-disabled': {
+                      opacity: 0.5,
                     },
                   }}
                 >
                   <ListItemText
                     primary={
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Typography variant="subtitle1" noWrap>
-                          {recording.fileName}
-                        </Typography>
-                        <Chip
-                          label={recording.status}
-                          size="small"
-                          color={getStatusColor(recording.status) as any}
-                          variant="outlined"
-                        />
-                      </Box>
+                      <Typography
+                        variant="body1"
+                        sx={{
+                          color: 'white',
+                          fontWeight: 300,
+                          fontSize: '0.9375rem',
+                          mb: 0.5,
+                        }}
+                      >
+                        {recording.fileName.replace('Recording - ', '').split(',')[0] || recording.fileName}
+                      </Typography>
                     }
                     secondary={
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-                        <AccessTime sx={{ fontSize: 14, color: 'text.secondary' }} />
-                        <Typography variant="caption" color="text.secondary">
+                      <Box
+                        component="span"
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 0.5,
+                          mt: 0.25,
+                        }}
+                      >
+                        <Typography
+                          variant="caption"
+                          component="span"
+                          sx={{
+                            color: 'rgba(255, 255, 255, 0.5)',
+                            fontSize: '0.8125rem',
+                          }}
+                        >
                           {formatDuration(recording.duration)}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          • {new Date(recording.createdAt).toLocaleDateString()}
+                        <Typography
+                          variant="caption"
+                          component="span"
+                          sx={{
+                            color: 'rgba(255, 255, 255, 0.5)',
+                            fontSize: '0.8125rem',
+                          }}
+                        >
+                          {formatRelativeTime(recording.createdAt)}
                         </Typography>
                       </Box>
                     }
                   />
-                  <ListItemSecondaryAction>
-                    <IconButton
-                      edge="end"
-                      onClick={() => handlePlayRecording(recording.id)}
-                      disabled={recording.status === 'transcribing'}
-                    >
-                      <PlayArrow />
-                    </IconButton>
-                    <IconButton
-                      edge="end"
-                      onClick={() => handleDeleteRecording(recording.id)}
-                      sx={{ ml: 1 }}
-                    >
-                      <Delete />
-                    </IconButton>
-                  </ListItemSecondaryAction>
-                </ListItem>
+                </ListItemButton>
               </Slide>
             ))}
           </List>
         )}
       </Box>
-
-      {/* Floating Action Button */}
-      <Fab
-        color="primary"
-        aria-label="record"
-        onClick={handleStartRecording}
-        sx={{
-          position: 'absolute',
-          bottom: 16,
-          right: 16,
-          transition: 'all 0.3s ease-in-out',
-          '&:hover': {
-            transform: 'scale(1.1)',
-            boxShadow: '0 8px 16px rgba(25, 118, 210, 0.3)',
-          },
-          '&:active': {
-            transform: 'scale(0.95)',
-          },
-        }}
-      >
-        <Add />
-      </Fab>
     </Box>
   );
 };

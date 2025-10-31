@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -12,199 +12,204 @@ import {
   CircularProgress,
 } from '@mui/material';
 import {
-  PlayArrow,
-  Pause,
-  Replay30,
-  Forward30,
-  ArrowBack,
-  Speed,
   VolumeUp,
 } from '@mui/icons-material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
+import { loadRecording } from '../lib/localStorage';
+import { usePlayer } from '../hooks/usePlayer';
+import { Recording } from '../store/useStore';
 
 const Playback: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { recordings } = useStore();
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [playbackSpeed, setPlaybackSpeed] = useState(1);
-  const [showSpeedMenu, setShowSpeedMenu] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const { deleteRecording } = useStore();
+  const [recording, setRecording] = useState<Recording | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const recording = recordings.find((r) => r.id === id);
-
-  // Set up audio element when recording changes
-  useEffect(() => {
-    if (recording && recording.audioUrl && audioRef.current) {
-      audioRef.current.src = recording.audioUrl;
-      audioRef.current.load();
-    }
-  }, [recording]);
-
-  // Handle audio events
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const handleTimeUpdate = () => {
-      setCurrentTime(Math.floor(audio.currentTime));
-    };
-
-    const handleEnded = () => {
-      setIsPlaying(false);
-      setCurrentTime(0);
-    };
-
-    const handlePlay = () => setIsPlaying(true);
-    const handlePause = () => setIsPlaying(false);
-
-    audio.addEventListener('timeupdate', handleTimeUpdate);
-    audio.addEventListener('ended', handleEnded);
-    audio.addEventListener('play', handlePlay);
-    audio.addEventListener('pause', handlePause);
-
-    return () => {
-      audio.removeEventListener('timeupdate', handleTimeUpdate);
-      audio.removeEventListener('ended', handleEnded);
-      audio.removeEventListener('play', handlePlay);
-      audio.removeEventListener('pause', handlePause);
-    };
-  }, [recording]);
-
-  // Update playback speed
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.playbackRate = playbackSpeed;
-    }
-  }, [playbackSpeed]);
-
-  const formatTime = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  const handlePlayBack = ({ currentPosition, duration }: { currentPosition: number; duration: number }) => {
+    // This is called during playback to update UI
   };
 
-  const handlePlayPause = () => {
-    if (!audioRef.current) return;
-    
+  const handlePlaybackEnd = () => {
+    // Playback finished
+  };
+
+  const {
+    isPlaying,
+    playTime,
+    duration,
+    currentPosition,
+    durationMs,
+    error: playerError,
+    startPlayer,
+    stopPlayer,
+    pausePlayer,
+    resumePlayer,
+    seekTo,
+    setPlaybackRate,
+    isLoading: playerLoading,
+  } = usePlayer(handlePlayBack, handlePlaybackEnd);
+
+  // Load recording on mount
+  useEffect(() => {
+    const load = async () => {
+      if (!id) return;
+      
+      setIsLoading(true);
+      try {
+        const loaded = await loadRecording(id);
+        if (loaded) {
+          setRecording(loaded);
+          
+          // If we have an audioUrl, start loading it
+          if (loaded.audioUrl) {
+            // Don't auto-play, just prepare
+          }
+        }
+      } catch (error) {
+        console.error('Error loading recording:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    load();
+  }, [id]);
+
+  // Start/stop playback when recording audioUrl is available
+  useEffect(() => {
+    if (recording?.audioUrl && !isPlaying && !playerLoading) {
+      // Don't auto-play, wait for user interaction
+    }
+  }, [recording, isPlaying, playerLoading]);
+
+  const formatTime = (milliseconds: number): string => {
+    const totalSeconds = Math.floor(milliseconds / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  const handlePlayPause = async () => {
+    if (!recording?.audioUrl) return;
+
     if (isPlaying) {
-      audioRef.current.pause();
+      pausePlayer();
     } else {
-      audioRef.current.play();
+      try {
+        await startPlayer(recording.audioUrl);
+      } catch (error) {
+        console.error('Failed to start playback:', error);
+        alert('Failed to start playback. Please try again.');
+      }
     }
   };
 
   const handleSeek = (event: Event, newValue: number | number[]) => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = newValue as number;
-      setCurrentTime(newValue as number);
-    }
-  };
-
-  const handleRewind = () => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime - 30);
-    }
-  };
-
-  const handleForward = () => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = Math.min(
-        audioRef.current.duration || 0, 
-        audioRef.current.currentTime + 30
-      );
+    const value = Array.isArray(newValue) ? newValue[0] : newValue;
+    if (typeof value === 'number' && isFinite(value) && value >= 0) {
+      seekTo(value);
     }
   };
 
   const handleSpeedChange = (speed: number) => {
-    setPlaybackSpeed(speed);
-    setShowSpeedMenu(false);
+    setPlaybackRate(speed);
   };
 
-  const handleBack = () => {
-    navigate('/dashboard');
-  };
+  // Listen for playback control events from Controls component
+  useEffect(() => {
+    const handlePlayPauseEvent = () => {
+      handlePlayPause();
+    };
 
-  if (!recording) {
+    const handleStopEvent = () => {
+      stopPlayer();
+      navigate('/dashboard');
+    };
+
+    window.addEventListener('playback:play-pause', handlePlayPauseEvent);
+    window.addEventListener('playback:stop', handleStopEvent);
+
+    return () => {
+      window.removeEventListener('playback:play-pause', handlePlayPauseEvent);
+      window.removeEventListener('playback:stop', handleStopEvent);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPlaying, recording]);
+
+  if (isLoading) {
     return (
-      <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-        <Box sx={{ p: 2, borderBottom: '1px solid #e0e0e0', display: 'flex', alignItems: 'center' }}>
-          <IconButton onClick={handleBack} sx={{ mr: 1 }}>
-            <ArrowBack />
-          </IconButton>
-          <Typography variant="h6" component="h1">
-            Recording Not Found
-          </Typography>
-        </Box>
-        <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Typography variant="body1" color="text.secondary">
-            The requested recording could not be found.
-          </Typography>
-        </Box>
+      <Box sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', backgroundColor: '#101010', alignItems: 'center', justifyContent: 'center' }}>
+        <CircularProgress sx={{ color: 'rgba(255, 255, 255, 0.5)' }} />
       </Box>
     );
   }
 
-  // const progress = recording.duration > 0 ? (currentTime / recording.duration) * 100 : 0;
-
-  return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* Header */}
-      <Box sx={{ p: 2, borderBottom: '1px solid #e0e0e0', display: 'flex', alignItems: 'center' }}>
-        <IconButton onClick={handleBack} sx={{ mr: 1 }}>
-          <ArrowBack />
-        </IconButton>
-        <Typography variant="h6" component="h1" noWrap>
-          {recording.fileName}
+  if (!recording) {
+    return (
+      <Box sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', backgroundColor: '#101010', alignItems: 'center', justifyContent: 'center', p: 2 }}>
+        <Typography variant="body1" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+          The requested recording could not be found.
         </Typography>
       </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', backgroundColor: '#101010' }}>
 
       {/* Content Area */}
-      <Box sx={{ flex: 1, p: 2 }}>
+      <Box sx={{ flex: 1, p: 2, overflow: 'auto' }}>
+        {/* Recording Title */}
+        <Typography
+          variant="h6"
+          sx={{
+            color: 'rgba(255, 255, 255, 0.9)',
+            mb: 2,
+            fontSize: '1rem',
+            fontWeight: 300,
+          }}
+        >
+          {recording.fileName.replace('Recording - ', '').split(',')[0] || recording.fileName}
+        </Typography>
+
         {recording.status === 'transcribing' ? (
           <Fade in timeout={600}>
             <Box sx={{ textAlign: 'center', py: 2 }}>
-              <CircularProgress sx={{ mb: 2 }} />
-              <Typography variant="h6" gutterBottom>
+              <CircularProgress sx={{ mb: 2, color: 'rgba(255, 255, 255, 0.5)' }} />
+              <Typography variant="h6" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 1 }}>
                 Transcribing...
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                Your recording is being processed. You can still listen to it below.
+              <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.5)', mb: 2 }}>
+                Your recording is being processed.
               </Typography>
-              <Chip
-                label="Transcribing"
-                color="warning"
-                variant="outlined"
-                sx={{ mb: 2 }}
-              />
             </Box>
           </Fade>
         ) : recording.status === 'done' && recording.transcript ? (
           <Slide direction="up" in timeout={800}>
-            <Paper sx={{ p: 2, height: '100%', overflow: 'auto', borderRadius: 2 }}>
+            <Paper sx={{ p: 2, backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: 1 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                <VolumeUp sx={{ color: 'primary.main' }} />
-                <Typography variant="subtitle1">
+                <VolumeUp sx={{ color: 'rgba(255, 255, 255, 0.7)' }} />
+                <Typography variant="subtitle1" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
                   Transcript:
                 </Typography>
               </Box>
-              <Typography variant="body1" sx={{ lineHeight: 1.6 }}>
+              <Typography variant="body1" sx={{ lineHeight: 1.6, color: 'rgba(255, 255, 255, 0.9)' }}>
                 {recording.transcript}
               </Typography>
             </Paper>
           </Slide>
         ) : (
           <Slide direction="up" in timeout={800}>
-            <Paper sx={{ p: 2, height: '100%', overflow: 'auto', borderRadius: 2 }}>
+            <Paper sx={{ p: 2, backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: 1 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                <VolumeUp sx={{ color: 'primary.main' }} />
-                <Typography variant="subtitle1">
+                <VolumeUp sx={{ color: 'rgba(255, 255, 255, 0.5)' }} />
+                <Typography variant="subtitle1" sx={{ color: 'rgba(255, 255, 255, 0.5)' }}>
                   Transcript:
                 </Typography>
               </Box>
-              <Typography variant="body1" sx={{ lineHeight: 1.6, fontStyle: 'italic', color: 'text.secondary' }}>
+              <Typography variant="body1" sx={{ lineHeight: 1.6, fontStyle: 'italic', color: 'rgba(255, 255, 255, 0.5)' }}>
                 {recording.status === 'error' 
                   ? 'There was an error processing this recording.'
                   : 'Transcript will appear here once processing is complete...'
@@ -215,134 +220,51 @@ const Playback: React.FC = () => {
         )}
       </Box>
 
-      {/* Playback Controls */}
-      <Box sx={{ p: 2, borderTop: '1px solid #e0e0e0' }}>
+      {/* Playback Controls - These will be moved to Controls component, keeping minimal UI here */}
+      <Box sx={{ p: 2, borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
         {/* Progress Bar */}
         <Box sx={{ mb: 2 }}>
           <Slider
-            value={currentTime}
+            value={isFinite(currentPosition) ? currentPosition : 0}
             min={0}
-            max={audioRef.current?.duration || recording.duration}
+            max={isFinite(durationMs) && durationMs > 0 ? durationMs : (isFinite(recording.duration) && recording.duration > 0 ? recording.duration * 1000 : 100)}
             onChange={handleSeek}
-            disabled={recording.status !== 'done' || !recording.audioUrl}
-            sx={{ mb: 1 }}
-          />
-          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-            <Typography variant="caption" color="text.secondary">
-              {formatTime(currentTime)}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {formatTime(audioRef.current?.duration || recording.duration)}
-            </Typography>
-          </Box>
-        </Box>
-
-        {/* Control Buttons */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <IconButton
-            onClick={handleRewind}
-            disabled={recording.status !== 'done' || !recording.audioUrl}
-            size="large"
-          >
-            <Replay30 />
-          </IconButton>
-
-          <IconButton
-            onClick={handlePlayPause}
-            disabled={recording.status !== 'done' || !recording.audioUrl}
-            size="large"
-            sx={{ 
-              backgroundColor: 'primary.main',
-              color: 'white',
-              transition: 'all 0.3s ease-in-out',
-              '&:hover': {
-                backgroundColor: 'primary.dark',
-                transform: 'scale(1.1)',
-                boxShadow: '0 4px 12px rgba(25, 118, 210, 0.3)',
+            disabled={!recording.audioUrl || playerLoading}
+            sx={{
+              mb: 1,
+              color: 'rgba(255, 255, 255, 0.7)',
+              '& .MuiSlider-thumb': {
+                backgroundColor: 'white',
               },
-              '&:active': {
-                transform: 'scale(0.95)',
+              '& .MuiSlider-track': {
+                backgroundColor: 'white',
               },
-              '&:disabled': {
-                backgroundColor: 'action.disabled',
-                color: 'action.disabled',
-                transform: 'none',
-                boxShadow: 'none',
+              '& .MuiSlider-rail': {
+                backgroundColor: 'rgba(255, 255, 255, 0.3)',
               },
             }}
-          >
-            {isPlaying ? <Pause /> : <PlayArrow />}
-          </IconButton>
-
-          <IconButton
-            onClick={handleForward}
-            disabled={recording.status !== 'done' || !recording.audioUrl}
-            size="large"
-          >
-            <Forward30 />
-          </IconButton>
-
-          <Box sx={{ position: 'relative' }}>
-            <IconButton
-              onClick={() => setShowSpeedMenu(!showSpeedMenu)}
-              disabled={recording.status !== 'done'}
-              size="large"
-            >
-              <Speed />
-            </IconButton>
-            {showSpeedMenu && (
-              <Box
-                sx={{
-                  position: 'absolute',
-                  bottom: '100%',
-                  right: 0,
-                  backgroundColor: 'white',
-                  border: '1px solid #e0e0e0',
-                  borderRadius: 1,
-                  p: 1,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 0.5,
-                  minWidth: '80px',
-                }}
-              >
-                {[0.5, 0.75, 1, 1.25, 1.5, 2].map((speed) => (
-                  <Button
-                    key={speed}
-                    size="small"
-                    variant={playbackSpeed === speed ? 'contained' : 'text'}
-                    onClick={() => handleSpeedChange(speed)}
-                    sx={{ minWidth: 'auto', fontSize: '0.75rem' }}
-                  >
-                    {speed}x
-                  </Button>
-                ))}
-              </Box>
-            )}
+          />
+          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+            <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)' }}>
+              {playTime || formatTime(0)}
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.5)' }}>
+              {duration || formatTime(recording.duration * 1000)}
+            </Typography>
           </Box>
         </Box>
 
-        {/* Status Indicator */}
-        <Box sx={{ mt: 1, textAlign: 'center' }}>
-          <Chip
-            label={recording.status}
-            color={
-              recording.status === 'done' ? 'success' :
-              recording.status === 'transcribing' ? 'warning' :
-              recording.status === 'error' ? 'error' : 'default'
-            }
-            variant="outlined"
-            size="small"
-          />
-        </Box>
+        {/* Error Display */}
+        {playerError && (
+          <Box sx={{ mb: 1, textAlign: 'center' }}>
+            <Typography variant="caption" sx={{ color: '#f44336' }}>
+              {playerError}
+            </Typography>
+          </Box>
+        )}
+
+        {/* Playback controls will be handled by Controls component */}
       </Box>
-      
-      {/* Hidden audio element for actual playback */}
-      <audio
-        ref={audioRef}
-        preload="metadata"
-        style={{ display: 'none' }}
-      />
     </Box>
   );
 };

@@ -1,58 +1,42 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
-  IconButton,
-  Button,
-  Paper,
-  LinearProgress,
-  Fade,
-  Slide,
+  CircularProgress,
   Alert,
   Snackbar,
 } from '@mui/material';
 import {
-  PlayArrow,
-  Pause,
-  Stop,
-  Delete,
-  ArrowBack,
   Mic,
   MicOff,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/useStore';
-import { useAudioRecorder } from '../hooks/useAudioRecorder';
-import { useAudioVisualizer } from '../hooks/useAudioVisualizer';
+import { useRecorder } from '../hooks/useRecorder';
+import { saveRecording } from '../lib/localStorage';
 
 const Recording: React.FC = () => {
   const navigate = useNavigate();
   const { addRecording, setIsRecording } = useStore();
   const [showError, setShowError] = useState(false);
+  const [recordBackData, setRecordBackData] = useState<{ currentPosition: number } | null>(null);
 
-  // Use real audio recording hook
+  const handleRecordBack = useCallback((data: { currentPosition: number }) => {
+    setRecordBackData(data);
+  }, []);
+
   const {
     isRecording,
     isPaused,
-    recordingTime,
-    audioBlob,
-    audioUrl,
+    recordTime,
     error,
-    stream,
-    startRecording,
-    pauseRecording,
-    resumeRecording,
-    stopRecording,
-    resetRecording,
-    getCurrentBlob,
-  } = useAudioRecorder();
-
-  // Use real audio visualization hook
-  const { audioLevel, waveformData, isAnalyzing } = useAudioVisualizer(
-    stream, // Pass the actual stream
-    isRecording,
-    isPaused
-  );
+    startRecorder,
+    stopRecorder,
+    pauseRecorder,
+    resumeRecorder,
+    resetRecorder,
+    isLoading,
+  } = useRecorder(handleRecordBack);
 
   // Update global recording state
   useEffect(() => {
@@ -68,26 +52,35 @@ const Recording: React.FC = () => {
 
   // Auto-start recording when component mounts
   useEffect(() => {
-    const autoStart = async () => {
-      try {
-        await startRecording();
-      } catch (err) {
-        console.error('Auto-start recording failed:', err);
-      }
-    };
-    
-    autoStart();
-  }, []); // Only run once on mount
+    if (!isRecording && !isLoading) {
+      handleStartRecording();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only on mount
 
-  const formatTime = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
+  // Listen for controls events
+  useEffect(() => {
+    const handlePauseResume = () => {
+      handlePauseRecording();
+    };
+
+    const handleStop = () => {
+      handleStopRecording();
+    };
+
+    window.addEventListener('recording:pause-resume', handlePauseResume);
+    window.addEventListener('recording:stop', handleStop);
+
+    return () => {
+      window.removeEventListener('recording:pause-resume', handlePauseResume);
+      window.removeEventListener('recording:stop', handleStop);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPaused, isRecording]); // Handlers are stable, only need isPaused and isRecording
 
   const handleStartRecording = async () => {
     try {
-      await startRecording();
+      await startRecorder();
     } catch (err) {
       console.error('Failed to start recording:', err);
     }
@@ -95,54 +88,68 @@ const Recording: React.FC = () => {
 
   const handlePauseRecording = () => {
     if (isPaused) {
-      resumeRecording();
+      resumeRecorder();
     } else {
-      pauseRecording();
+      pauseRecorder();
     }
   };
 
   const handleStopRecording = async () => {
-    await stopRecording();
-    
-    // Use the ref directly since state might not be updated yet
-    const currentBlob = getCurrentBlob();
-    
-    // Save the recording even if it's empty
-    if (currentBlob) {
-      try {
-        // Check file size (Whisper limit is 25MB)
-        const fileSizeMB = currentBlob.size / (1024 * 1024);
-        if (fileSizeMB > 25) {
-          alert('Recording is too large. Please keep recordings under 25MB.');
-          resetRecording();
-          navigate('/dashboard');
-          return;
-        }
-
-        const newRecording = {
-          id: Date.now().toString(),
-          fileName: `Recording - ${new Date().toLocaleString()}`,
-          duration: recordingTime,
-          status: 'done' as const, // Set to done immediately since we don't have transcription yet
-          createdAt: new Date().toISOString(),
-          audioBlob: currentBlob, // Store the actual audio blob
-          audioUrl: URL.createObjectURL(currentBlob), // Create URL from the blob
-        };
-        
-        addRecording(newRecording);
-      } catch (err) {
-        console.error('Failed to save recording:', err);
-        alert('Failed to save recording. Please try again.');
+    try {
+      const audioUrl = await stopRecorder();
+      
+      if (!audioUrl) {
+        throw new Error('No recording data available');
       }
+
+      // Get the blob from the URL
+      const response = await fetch(audioUrl);
+      const audioBlob = await response.blob();
+
+      // Check file size (limit to 25MB for now)
+      const fileSizeMB = audioBlob.size / (1024 * 1024);
+      if (fileSizeMB > 25) {
+        alert('Recording is too large. Please keep recordings under 25MB.');
+        resetRecorder();
+        navigate('/dashboard');
+        return;
+      }
+
+      // Calculate duration in seconds
+      const duration = recordBackData ? Math.floor(recordBackData.currentPosition / 1000) : 0;
+
+      // Create recording object
+      const title = `Recording - ${new Date().toLocaleString()}`;
+      const newRecording = {
+        id: `rec_${Date.now()}`,
+        fileName: title,
+        duration,
+        status: 'done' as const,
+        createdAt: new Date().toISOString(),
+        audioBlob,
+        audioUrl,
+      };
+
+      // Save to local storage
+      await saveRecording(newRecording);
+
+      // Add to store
+      addRecording(newRecording);
+
+      alert('Recording saved successfully!');
+      
+      // Clean up
+      resetRecorder();
+      navigate('/dashboard');
+    } catch (err) {
+      console.error('Failed to save recording:', err);
+      alert(`Failed to save recording: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
-    
-    resetRecording();
-    navigate('/dashboard');
   };
 
   const handleDeleteRecording = () => {
     if (window.confirm('Are you sure you want to delete this recording?')) {
-      resetRecording();
+      resetRecorder();
       navigate('/dashboard');
     }
   };
@@ -150,7 +157,7 @@ const Recording: React.FC = () => {
   const handleBack = () => {
     if (isRecording) {
       if (window.confirm('You have an active recording. Are you sure you want to go back?')) {
-        resetRecording();
+        resetRecorder();
         navigate('/dashboard');
       }
     } else {
@@ -159,154 +166,52 @@ const Recording: React.FC = () => {
   };
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* Header */}
-      <Box sx={{ p: 2, borderBottom: '1px solid #e0e0e0', display: 'flex', alignItems: 'center' }}>
-        <IconButton onClick={handleBack} sx={{ mr: 1 }}>
-          <ArrowBack />
-        </IconButton>
-        <Typography variant="h6" component="h1">
-          Recording
-        </Typography>
-      </Box>
-
+    <Box sx={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', backgroundColor: '#101010' }}>
       {/* Recording Status */}
-      <Box sx={{ p: 2, textAlign: 'center' }}>
-        <Fade in timeout={500}>
-          <Box>
-            <Typography 
-              variant="h4" 
-              component="div" 
-              gutterBottom
-              sx={{
-                fontFamily: 'monospace',
-                fontWeight: 'bold',
-                color: isRecording ? 'primary.main' : 'text.primary',
-                transition: 'color 0.3s ease',
-              }}
-            >
-              {formatTime(recordingTime)}
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-              {isRecording ? (
-                <Mic sx={{ color: 'error.main', animation: 'pulse 1.5s infinite' }} />
-              ) : (
-                <MicOff sx={{ color: 'text.secondary' }} />
-              )}
-              <Typography variant="body2" color="text.secondary">
-                {isRecording ? (isPaused ? 'Paused' : 'Recording...') : 'Ready to record'}
-              </Typography>
-            </Box>
-          </Box>
-        </Fade>
-      </Box>
-
-      {/* Waveform Visualization */}
-      <Box sx={{ flex: 1, p: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <Slide direction="up" in timeout={600}>
-          <Paper
-            sx={{
-              width: '100%',
-              height: '200px',
-              p: 2,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: '#f8f8f8',
-              borderRadius: 2,
-              boxShadow: isRecording ? '0 4px 12px rgba(25, 118, 210, 0.15)' : '0 2px 8px rgba(0, 0, 0, 0.1)',
-              transition: 'box-shadow 0.3s ease',
-            }}
-          >
-            {waveformData.length > 0 ? (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, height: '100%' }}>
-                {waveformData.map((value, index) => (
-                  <Box
-                    key={index}
-                    sx={{
-                      width: '4px',
-                      height: `${Math.max(value, 5)}%`,
-                      backgroundColor: isRecording && !isPaused ? '#1976d2' : '#ccc',
-                      borderRadius: '2px',
-                      transition: 'all 0.1s ease',
-                      animation: isRecording && !isPaused ? 'waveformPulse 0.5s ease-in-out infinite alternate' : 'none',
-                      animationDelay: `${index * 0.01}s`,
-                    }}
-                  />
-                ))}
-              </Box>
-            ) : (
-              <Fade in timeout={800}>
-                <Box sx={{ textAlign: 'center' }}>
-                  <Mic sx={{ fontSize: 48, color: 'text.secondary', mb: 1, opacity: 0.3 }} />
-                  <Typography variant="body2" color="text.secondary">
-                    {isRecording ? 'Waveform will appear here' : 'Start recording to see waveform'}
-                  </Typography>
-                  {isAnalyzing && (
-                    <Typography variant="caption" color="primary" sx={{ mt: 1, display: 'block' }}>
-                      Audio Level: {Math.round(audioLevel)}%
-                    </Typography>
-                  )}
-                </Box>
-              </Fade>
-            )}
-          </Paper>
-        </Slide>
-      </Box>
-
-      {/* Recording Controls */}
-      <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <IconButton
-          onClick={handleDeleteRecording}
-          disabled={!isRecording}
-          color="error"
-          size="large"
+      <Box sx={{ flex: 1, p: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+        <Typography
+          variant="h3"
+          component="div"
+          gutterBottom
+          sx={{
+            fontWeight: 300,
+            color: isRecording ? '#ff9800' : 'rgba(255, 255, 255, 0.7)',
+            transition: 'color 0.3s ease',
+            mb: 3,
+          }}
         >
-          <Delete />
-        </IconButton>
+          {recordTime}
+        </Typography>
 
-        <Box sx={{ display: 'flex', gap: 1 }}>
-          {!isRecording ? (
-            <Button
-              variant="contained"
-              startIcon={<PlayArrow />}
-              onClick={handleStartRecording}
-              size="large"
-            >
-              Start Recording
-            </Button>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 4 }}>
+          {isRecording ? (
+            <Mic sx={{ color: '#f44336', fontSize: 48, animation: 'pulse 1.5s infinite' }} />
           ) : (
-            <>
-              <IconButton
-                onClick={handlePauseRecording}
-                color="primary"
-                size="large"
-              >
-                {isPaused ? <PlayArrow /> : <Pause />}
-              </IconButton>
-            </>
+            <MicOff sx={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: 48 }} />
           )}
         </Box>
 
-        <IconButton
-          onClick={handleStopRecording}
-          disabled={!isRecording}
-          color="error"
-          size="large"
+        <Typography
+          variant="body1"
+          sx={{
+            color: 'rgba(255, 255, 255, 0.6)',
+          }}
+          gutterBottom
         >
-          <Stop />
-        </IconButton>
+          {isRecording ? (isPaused ? 'Paused' : 'Recording...') : 'Ready to record'}
+        </Typography>
+
+        {isLoading && (
+          <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <CircularProgress size={20} sx={{ color: 'rgba(255, 255, 255, 0.5)' }} />
+            <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+              {isRecording ? 'Stopping...' : 'Starting...'}
+            </Typography>
+          </Box>
+        )}
       </Box>
 
-      {/* Progress indicator for transcribing status */}
-      {isRecording && (
-        <Box sx={{ p: 2 }}>
-          <LinearProgress />
-          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-            Recording in progress...
-          </Typography>
-        </Box>
-      )}
+      {/* Recording Controls will be handled by Controls component */}
 
       {/* Error Snackbar */}
       <Snackbar
@@ -323,6 +228,13 @@ const Recording: React.FC = () => {
           {error || 'Recording failed. Please check your microphone permissions.'}
         </Alert>
       </Snackbar>
+
+      <style>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+      `}</style>
     </Box>
   );
 };
