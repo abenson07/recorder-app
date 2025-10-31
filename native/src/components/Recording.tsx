@@ -73,6 +73,10 @@ const Recording: React.FC = () => {
 
   // Register callbacks with store for Controls component
   useEffect(() => {
+    console.log('📝 Registering recording callbacks', {
+      hasPauseResume: !!handlePauseRecording,
+      hasStop: !!handleStopRecording,
+    });
     setRecordingCallbacks({
       onPauseResume: handlePauseRecording,
       onStop: handleStopRecording,
@@ -119,12 +123,13 @@ const Recording: React.FC = () => {
   };
 
   const handlePauseRecording = useCallback(() => {
+    console.log('⏸️ handlePauseRecording called', { isPaused, isRecording });
     if (isPaused) {
       resumeRecorder();
     } else {
       pauseRecorder();
     }
-  }, [isPaused, resumeRecorder, pauseRecorder]);
+  }, [isPaused, isRecording, resumeRecorder, pauseRecorder]);
 
   /**
    * Get duration from audio file (for native, we'll get it from the recording URI)

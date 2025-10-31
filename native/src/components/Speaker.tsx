@@ -33,7 +33,7 @@ const Speaker: React.FC = () => {
 
       {/* Speaker Grille SVG */}
       <View style={styles.grilleContainer}>
-        <Svg width={170} height={36} viewBox="0 0 276 36">
+        <Svg width="100%" height="100%" viewBox="0 0 276 36" preserveAspectRatio="none">
           {circles.map((circle, index) => (
             <Circle
               key={index}

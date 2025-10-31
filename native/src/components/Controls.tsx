@@ -132,8 +132,11 @@ const Controls: React.FC<ControlsProps> = () => {
         <TouchableOpacity
           style={[styles.button, styles.leftButton]}
           onPress={() => {
+            console.log('🔘 Recording pause/resume button pressed', { hasCallback: !!onRecordingPauseResume });
             if (onRecordingPauseResume) {
               onRecordingPauseResume();
+            } else {
+              console.warn('⚠️ onRecordingPauseResume callback not available');
             }
           }}
           activeOpacity={0.8}
@@ -165,9 +168,11 @@ const Controls: React.FC<ControlsProps> = () => {
           <TouchableOpacity
             style={[styles.button, styles.topRightButton]}
             onPress={() => {
+              console.log('🔘 Recording stop button pressed', { hasCallback: !!onRecordingStop });
               if (onRecordingStop) {
                 onRecordingStop();
               } else {
+                console.warn('⚠️ onRecordingStop callback not available, using handleStopClick');
                 handleStopClick();
               }
             }}
@@ -198,8 +203,11 @@ const Controls: React.FC<ControlsProps> = () => {
         <TouchableOpacity
           style={[styles.button, styles.leftButton]}
           onPress={() => {
+            console.log('🔘 Playback play/pause button pressed', { hasCallback: !!onPlaybackPlayPause });
             if (onPlaybackPlayPause) {
               onPlaybackPlayPause();
+            } else {
+              console.warn('⚠️ onPlaybackPlayPause callback not available');
             }
           }}
           activeOpacity={0.8}

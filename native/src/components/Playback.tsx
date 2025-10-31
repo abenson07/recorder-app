@@ -64,6 +64,10 @@ const Playback: React.FC = () => {
 
   // Register callbacks with store for Controls component
   useEffect(() => {
+    console.log('📝 Registering playback callbacks', {
+      hasPlayPause: !!handlePlayPause,
+      hasStop: !!handleStop,
+    });
     setPlaybackCallbacks({
       onPlayPause: handlePlayPause,
       onStop: handleStop,
@@ -177,7 +181,11 @@ const Playback: React.FC = () => {
   };
 
   const handlePlayPause = useCallback(async () => {
-    if (!recording?.audioUrl) return;
+    console.log('▶️ handlePlayPause called', { isPlaying, hasAudioUrl: !!recording?.audioUrl });
+    if (!recording?.audioUrl) {
+      console.warn('⚠️ No audio URL available');
+      return;
+    }
 
     if (isPlaying) {
       pausePlayer();
